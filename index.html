@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=240, height=282, initial-scale=1.0, user-scalable=no">
-<title>Claude Usage</title>
+<title>Claude Usage v1.0</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -48,6 +48,14 @@
   .header .updated {
     font-size: 8px;
     color: #666;
+  }
+
+  .version-tag {
+    font-size: 7px;
+    color: #444;
+    text-align: right;
+    margin-top: -4px;
+    margin-bottom: 6px;
   }
 
   .metric {
@@ -176,6 +184,7 @@
       <span class="title">Claude Usage</span>
       <span class="updated" id="updatedAt">--:--</span>
     </div>
+    <div class="version-tag" id="versionTag">v1.0.0</div>
 
     <div class="metric" id="metric-session" data-index="0">
       <div class="metric-top">
@@ -224,6 +233,7 @@
     <div class="settings-hint">
       scroll ↕ to move · hold PTT + scroll to adjust value · click row to select
     </div>
+    <div class="settings-hint" id="versionFooter">v1.0.0</div>
   </div>
 
 </div>
@@ -234,6 +244,13 @@
    Screen: 240x282 fixed. Nav: scroll wheel + side (PTT) button.
    Storage: window.creationStorage (R1 SDK), not localStorage.
    ===========================================================
+
+   VERSION: bump on every change. Keep <title>, #versionTag,
+   APP_VERSION below, and CHANGELOG.md all in sync. */
+
+const APP_VERSION = '1.0.0';
+
+/* ===========================================================
 
    DATA SOURCE — LIVE, via self-hosted proxy
    ------------------------------------------------------------
@@ -415,6 +432,7 @@ function renderUsageScreen() {
 function renderSettingsScreen() {
   document.getElementById('setSessionVal').textContent = state.session + '%';
   document.getElementById('setWeeklyVal').textContent = state.weekly + '%';
+  document.getElementById('versionFooter').textContent = 'v' + APP_VERSION;
 
   const rows = ['row-session', 'row-weekly', 'row-back'];
   rows.forEach((id, i) => {
@@ -519,6 +537,7 @@ async function syncUsage() {
 
 // ---------- Init ----------
 async function init() {
+  document.getElementById('versionTag').textContent = 'v' + APP_VERSION;
   const saved = await loadState();
   if (saved) {
     state = { ...state, ...saved };

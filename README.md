@@ -46,8 +46,22 @@ index.html          — the R1 Creation itself (self-contained, no build step)
 proxy/
   server.js         — small Express server, fetches usage server-side
   package.json
-README.md           — this file
+CHANGELOG.md         — version history for both components
+README.md            — this file
 ```
+
+## Versioning
+
+The Creation and the proxy are versioned independently:
+
+- **Creation** version lives in `index.html`'s `<title>`, the on-screen
+  version tag, and the `APP_VERSION` constant near the top of the
+  `<script>` block. Bump it on every change and keep all three in sync.
+- **Proxy** version lives in `proxy/package.json` and is echoed back by
+  `/health` and every `/usage` response as `proxyVersion`, so you can
+  confirm which build the R1 is actually talking to.
+
+See [`CHANGELOG.md`](./CHANGELOG.md) for history.
 
 ## 1. Deploy the proxy
 

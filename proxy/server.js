@@ -29,6 +29,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
+const { version: PROXY_VERSION } = require('./package.json');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -130,18 +131,18 @@ function toPercent(v) {
 
 // ---------- Routes ----------
 
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health', (req, res) => res.json({ ok: true, version: PROXY_VERSION }));
 
 app.get('/usage', checkSharedSecret, async (req, res) => {
   try {
     const now = Date.now();
     if (cache.data && now - cache.fetchedAt < CACHE_TTL_MS) {
-      return res.json({ ...cache.data, cached: true });
+      return res.json({ ...cache.data, cached: true, proxyVersion: PROXY_VERSION });
     }
 
     const data = await fetchClaudeUsage();
     cache = { data, fetchedAt: now };
-    res.json({ ...data, cached: false });
+    res.json({ ...data, cached: false, proxyVersion: PROXY_VERSION });
   } catch (err) {
     console.error('[usage] error:', err.message);
     res.status(502).json({
