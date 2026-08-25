@@ -14,6 +14,15 @@ Bump the relevant version on every change to that component.
 
 ## Creation
 
+### v1.2.2 (this release also published as `index-v1.2.2.html`)
+- `AUTO_REFRESH_MS`: 5 min → 90 sec. Combined with the extension's
+  tightened 1-min push interval (see Extension v1.1.0 below),
+  worst-case staleness between a real usage change and the R1
+  reflecting it drops from ~8-10 min to ~2.5 min.
+- Old `index-v1.2.1.html` removed per the versioned-filename pattern —
+  only the current release's versioned copy is kept going forward, to
+  avoid the repo accumulating every historical version indefinitely.
+
 ### v1.2.1 (this release also published as `index-v1.2.1.html`)
 - **Root cause found for repeated "still shows old version" reports**:
   GitHub Pages' CDN (Fastly) can cache by filename and ignore query
@@ -160,6 +169,15 @@ New shape:
   can't find them
 
 ## Extension (extension/)
+
+### v1.1.0
+- `ALARM_PERIOD_MINUTES`: 4 → 1. Chrome's practical floor for a
+  repeating alarm is 0.5-1 minute depending on packed/unpacked state;
+  1 minute is the safe, portable choice. Paired with the Creation's
+  tightened 90-sec poll (v1.2.2), worst-case end-to-end staleness is
+  now ~2.5 min instead of ~8-10 min.
+- No change to push-on-tab-load/refresh behavior — still pushes
+  immediately in addition to the alarm cadence.
 
 ### v1.0.0 — initial release
 - Manifest V3 Chrome extension, active only on `https://claude.ai/*`

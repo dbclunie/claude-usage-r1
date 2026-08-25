@@ -265,7 +265,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.2.2';
 
 /* ===========================================================
 
@@ -587,7 +587,7 @@ function clamp(v, min, max) {
 }
 
 // ---------- Sync ----------
-const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 minutes — keep gentle on the proxy/device
+const AUTO_REFRESH_MS = 90 * 1000; // 1.5 minutes — combined with the extension's 1-min push, keeps worst-case staleness under 3 min
 
 async function syncUsage() {
   const data = await getUsageData(null);

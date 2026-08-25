@@ -8,7 +8,7 @@
  */
 
 const ALARM_NAME = 'usage-refresh';
-const ALARM_PERIOD_MINUTES = 4; // stay comfortably under the R1's 5-min poll
+const ALARM_PERIOD_MINUTES = 1; // Chrome's practical floor for repeating alarms is ~0.5-1 min
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
