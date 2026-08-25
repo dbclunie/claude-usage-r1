@@ -14,7 +14,20 @@ Bump the relevant version on every change to that component.
 
 ## Creation
 
-### v1.2.1
+### v1.2.1 (this release also published as `index-v1.2.1.html`)
+- **Root cause found for repeated "still shows old version" reports**:
+  GitHub Pages' CDN (Fastly) can cache by filename and ignore query
+  strings, so the `?v=...` cache-busting approach used for the last
+  several releases was not reliably forcing a fresh fetch — the R1 (or
+  an intermediate cache) may have kept serving pre-v1.2.1 content
+  regardless of the query param. Fix: publish version-named file
+  copies (`index-v<version>.html`) going forward and point the R1's
+  install QR at the versioned file, not `index.html` — see README
+  "Updating the Creation after the first install".
+- Added `Cache-Control`/`Pragma`/`Expires` no-cache meta tags to
+  `<head>` as defense in depth (not fully reliable alone, since
+  browsers/WebViews can ignore meta tags in favor of server headers —
+  the versioned-filename approach is the actual fix).
 - Moved "Last updated" line to sit directly below the Session/Weekly
   boxes (was previously below the footer scroll-hint, at the very
   bottom).

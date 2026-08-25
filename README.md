@@ -177,6 +177,37 @@ ever bothers you, or keep the repo private.
    URL-only QR will be rejected as "invalid" by the R1.
 3. On your R1: open the **camera** → scan → **Install**.
 
+### Updating the Creation after the first install
+
+GitHub Pages runs on Fastly, which — like many CDNs — can cache a page
+by filename and **ignore query strings entirely**. This means the
+`?v=1.2.3` trick commonly suggested for cache-busting does **not**
+reliably work here: the R1 (and/or Fastly) may keep serving the old
+cached `index.html` even when the QR encodes a "new" URL with a
+different query param.
+
+The reliable fix is a genuinely different **filename**, which no cache
+layer can collapse with the old one. This repo keeps `index.html` as
+the always-current canonical copy, and additionally publishes a
+version-named duplicate on every release that changes the Creation
+(e.g. `index-v1.2.1.html`) specifically for re-installing on the R1:
+
+1. After editing `index.html` and bumping `APP_VERSION`, copy it to
+   `index-v<version>.html` and commit both.
+2. Generate the install QR pointing at the **versioned filename**, not
+   `index.html`:
+   ```json
+   {"title":"Claude Usage","url":"https://<you>.github.io/<repo>/index-v1.2.1.html", ...}
+   ```
+3. **Uninstall the old card on the R1 first**, then scan the new QR —
+   this repo's testing found that skipping the uninstall step can leave
+   a stale card in place even with a genuinely new URL.
+
+Meta tags (`Cache-Control: no-cache` etc.) are also set in `<head>` as
+defense in depth, but browsers/WebViews are free to ignore them in
+favor of server-sent headers — the versioned-filename approach is the
+one that reliably works.
+
 ## Using the R1 Creation
 
 - **Scroll wheel** — move focus between Session and Weekly cards
