@@ -29,6 +29,14 @@ at `1.0.0` as of this repo's initial publish.
 
 ## Proxy
 
+### v1.0.1
+- Send full browser-like request headers (User-Agent, Accept-Language,
+  Origin, Referer) to claude.ai, not just the session cookie — the
+  cookie-only request was getting a 403 from claude.ai's
+  `/api/organizations` endpoint, likely due to bot/script fingerprint
+  filtering. Headers are now built once via `buildHeaders()` and shared
+  between `/usage` and `/debug/raw` so they can't drift out of sync.
+
 ### v1.0.0 — initial release
 - Express server exposing `GET /usage` (clean session+weekly JSON),
   `GET /health`, and `GET /debug/raw` (unfiltered upstream response, for

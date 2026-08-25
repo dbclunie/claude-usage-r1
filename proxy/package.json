@@ -1,6 +1,6 @@
 {
   "name": "claude-usage-proxy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Tiny proxy that fetches Claude.ai session/weekly usage server-side and serves it to the R1 Creation (avoids CORS + keeps your session key off the device).",
   "main": "server.js",
   "type": "commonjs",

@@ -60,12 +60,19 @@ function checkSharedSecret(req, res, next) {
 let cache = { data: null, fetchedAt: 0 };
 const CACHE_TTL_MS = 60 * 1000; // 60s
 
-async function fetchClaudeUsage() {
-  const headers = {
+function buildHeaders() {
+  return {
     Cookie: `sessionKey=${SESSION_KEY}`,
     Accept: 'application/json',
-    'User-Agent': 'Mozilla/5.0 (compatible; personal-usage-widget/1.0)'
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept-Language': 'en-US,en;q=0.9',
+    Origin: 'https://claude.ai',
+    Referer: 'https://claude.ai/'
   };
+}
+
+async function fetchClaudeUsage() {
+  const headers = buildHeaders();
 
   // 1. Get organization UUID
   const orgsResp = await fetch('https://claude.ai/api/organizations', { headers });
@@ -156,10 +163,7 @@ app.get('/usage', checkSharedSecret, async (req, res) => {
 // Remove or protect this in production — it exposes more of the raw response.
 app.get('/debug/raw', checkSharedSecret, async (req, res) => {
   try {
-    const headers = {
-      Cookie: `sessionKey=${SESSION_KEY}`,
-      Accept: 'application/json'
-    };
+    const headers = buildHeaders();
     const orgsResp = await fetch('https://claude.ai/api/organizations', { headers });
     const orgs = await orgsResp.json();
     const orgId = orgs?.[0]?.uuid;
