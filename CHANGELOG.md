@@ -14,6 +14,13 @@ Bump the relevant version on every change to that component.
 
 ## Creation
 
+### v1.1.1
+- Actually set `PROXY_URL` to the deployed relay + shared secret. Previous
+  commits updated the surrounding comments for the new relay
+  architecture but left `PROXY_URL` empty, so the R1 was silently
+  running on hardcoded placeholder values (45%/32%) the whole time
+  despite the relay and extension working correctly end-to-end.
+
 ### v1.1.0
 - Updated data-source comments and README pointers to reflect the new
   relay architecture (see Relay v2.0.0 below) — no functional change to
