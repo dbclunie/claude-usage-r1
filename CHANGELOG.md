@@ -14,6 +14,23 @@ Bump the relevant version on every change to that component.
 
 ## Creation
 
+### v1.2.1
+- Moved "Last updated" line to sit directly below the Session/Weekly
+  boxes (was previously below the footer scroll-hint, at the very
+  bottom).
+- Increased size/weight to 12px bold (was 7px) and base color to
+  `#ccc` (was `#666`) for legibility, matching the boldness of the
+  metric numbers without literally matching their 20px size — at 20px
+  the full "Last updated: Today H:MM AM" string doesn't fit the 240px
+  screen width (measured 240px needed vs 216px available with
+  padding); 12px was the largest confirmed to fit comfortably.
+- **Flipped the color logic** from the original v1.2.0 build: amber
+  now means *fresh* (pushed within the last 15 min), not stale —
+  `.stale` class renamed to `.fresh`, condition inverted
+  (`ageMs <= threshold` instead of `>`). Older-than-15-min now reads
+  in the same neutral `#ccc` as everything else rather than a warning
+  color, since the intent was to highlight recency, not flag staleness.
+
 ### v1.2.0
 - New "Last updated: <date> <time>" line below the footer hint, showing
   when the extension actually last pushed data to the relay (`pushedAt`

@@ -123,12 +123,14 @@
 
   .last-updated {
     text-align: center;
-    font-size: 7px;
-    color: #666;
-    padding-top: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ccc;
+    padding-top: 6px;
+    padding-bottom: 2px;
   }
-  .last-updated.stale {
-    color: #b45309; /* amber, matches caution tier — data may be out of date */
+  .last-updated.fresh {
+    color: #FBBF24; /* amber — updated within the last 15 min */
   }
 
   /* ---------- Screen: Settings / Manual Entry ---------- */
@@ -220,8 +222,9 @@
       </div>
     </div>
 
-    <div class="footer-hint" id="mainHint">scroll ↕ · click=settings · hold=sync</div>
     <div class="last-updated" id="lastUpdated">Last updated: --</div>
+
+    <div class="footer-hint" id="mainHint">scroll ↕ · click=settings · hold=sync</div>
   </div>
 
   <!-- SETTINGS / MANUAL ENTRY SCREEN -->
@@ -259,7 +262,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 
 /* ===========================================================
 
@@ -446,13 +449,13 @@ function renderUsageScreen() {
   document.getElementById('metric-weekly').classList.toggle('selected', usageFocusIndex === 1);
 }
 
-const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 min — well beyond the ~4 min push cadence
+const FRESH_THRESHOLD_MS = 15 * 60 * 1000; // 15 min — well within the ~4 min push cadence
 
 function renderLastUpdated() {
   const el = document.getElementById('lastUpdated');
   if (!state.pushedAt) {
     el.textContent = 'Last updated: never';
-    el.classList.add('stale');
+    el.classList.remove('fresh');
     return;
   }
 
@@ -462,7 +465,7 @@ function renderLastUpdated() {
   const timeStr = formatTime12h(pushedDate);
 
   el.textContent = 'Last updated: ' + dateStr + ' ' + timeStr;
-  el.classList.toggle('stale', ageMs > STALE_THRESHOLD_MS);
+  el.classList.toggle('fresh', ageMs <= FRESH_THRESHOLD_MS);
 }
 
 function formatShortDate(date) {
