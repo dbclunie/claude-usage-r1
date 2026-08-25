@@ -14,6 +14,11 @@ Bump the relevant version on every change to that component.
 
 ## Creation
 
+### v1.2.3 (published as `index-v1.2.3.html`)
+- `.metric-sub` color: `#777` → `#FBBF24` (amber). The "X% left" and
+  "resets in Yh Zm / Yd" lines below each bar were too dim to read on
+  the black background.
+
 ### v1.2.2 (this release also published as `index-v1.2.2.html`)
 - `AUTO_REFRESH_MS`: 5 min → 90 sec. Combined with the extension's
   tightened 1-min push interval (see Extension v1.1.0 below),
