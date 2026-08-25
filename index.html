@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=240, height=282, initial-scale=1.0, user-scalable=no">
-<title>Claude Usage v1.0</title>
+<title>Claude Usage v1.1</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -248,18 +248,21 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 
 /* ===========================================================
 
-   DATA SOURCE — LIVE, via self-hosted proxy
+   DATA SOURCE — LIVE, via self-hosted relay
    ------------------------------------------------------------
-   getUsageData() fetches from PROXY_URL (set below). The proxy
-   holds your claude.ai sessionKey server-side and returns clean
-   JSON, so the R1 device never sees your session key and never
-   fights CORS. See /proxy in the repo for the server code.
+   getUsageData() reads from PROXY_URL (set below), a small relay
+   server. It does NOT fetch claude.ai directly — that path gets
+   blocked by Cloudflare bot protection when it's not a real
+   browser session. Instead, a Chrome extension (see /extension in
+   the repo) reads usage data from inside your logged-in claude.ai
+   tab and pushes it to the relay; this device just pulls the last
+   pushed value. See /proxy in the repo for the relay server code.
 
-   Set PROXY_URL to your deployed proxy, e.g.:
+   Set PROXY_URL to your deployed relay, e.g.:
      https://your-app.onrender.com/usage?key=YOUR_SHARED_SECRET
    =========================================================== */
 
@@ -304,7 +307,7 @@ async function loadState() {
   return null;
 }
 
-// ---------- Live data source (via proxy) ----------
+// ---------- Live data source (via relay — see extension/ in the repo) ----------
 async function getUsageData(manualOverride) {
   if (manualOverride) {
     return {

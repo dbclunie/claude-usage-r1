@@ -1,7 +1,7 @@
 {
-  "name": "claude-usage-proxy",
-  "version": "1.0.2",
-  "description": "Tiny proxy that fetches Claude.ai session/weekly usage server-side and serves it to the R1 Creation (avoids CORS + keeps your session key off the device).",
+  "name": "claude-usage-relay",
+  "version": "2.0.0",
+  "description": "Small relay: receives Claude.ai usage data pushed by a Chrome extension (running inside your authenticated browser session) and serves it to the R1 Creation. Does not talk to claude.ai itself.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "node-fetch": "^2.7.0",
     "cors": "^2.8.5"
   },
   "engines": {

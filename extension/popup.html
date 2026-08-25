@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    width: 300px;
+    font-family: -apple-system, sans-serif;
+    padding: 16px;
+    background: #1e1e1e;
+    color: #eee;
+  }
+  h1 { font-size: 14px; margin: 0 0 12px; }
+  label { font-size: 11px; color: #999; display: block; margin-top: 10px; margin-bottom: 4px; }
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    background: #2b2b2b;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #eee;
+    font-size: 12px;
+  }
+  button {
+    width: 100%;
+    margin-top: 12px;
+    padding: 8px;
+    background: #FF6A00;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  button:hover { background: #e05f00; }
+  #status {
+    margin-top: 12px;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    background: #2b2b2b;
+  }
+  #status.ok { border-left: 3px solid #4ADE80; }
+  #status.error { border-left: 3px solid #F87171; }
+  #status.unknown { border-left: 3px solid #666; }
+  #saveMsg { font-size: 11px; color: #4ADE80; margin-top: 6px; height: 14px; }
+</style>
+</head>
+<body>
+  <h1>Claude Usage → R1 Relay</h1>
+
+  <label for="relayUrl">Relay server URL</label>
+  <input id="relayUrl" type="text" placeholder="https://your-relay.onrender.com" />
+
+  <label for="sharedSecret">Shared secret</label>
+  <input id="sharedSecret" type="password" placeholder="same value as PROXY_SHARED_SECRET" />
+
+  <button id="saveBtn">Save</button>
+  <div id="saveMsg"></div>
+
+  <div id="status" class="unknown">Checking last push status…</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

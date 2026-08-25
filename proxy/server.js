@@ -1,54 +1,50 @@
 /**
- * Claude Usage Proxy
+ * Claude Usage Relay
  * ------------------------------------------------------------
- * Runs server-side (Node). Holds your claude.ai sessionKey in an
- * environment variable — never on the R1 device, never in the
- * browser, never committed to git.
+ * Runs server-side (Node). Does NOT talk to claude.ai itself —
+ * it's a small, dumb relay:
  *
- * Why this exists: claude.ai's usage endpoints require a
- * `sessionKey` cookie and are not designed for cross-origin
- * fetches from a third-party device page. This proxy makes the
- * authenticated request server-side and returns a small, clean
- * JSON payload the R1 Creation can safely fetch over plain HTTPS
- * with no auth secret exposed to the device.
+ *   Chrome extension  --POST-->  this server  --GET-->  R1 device
+ *   (runs inside your            (in-memory        (polls this
+ *    authenticated                 last-value          server every
+ *    claude.ai tab)                 cache)              few minutes)
  *
- * Endpoints used (per documented behavior of the claude.ai web
- * app, as referenced by the open-source CodexBar project):
- *   GET https://claude.ai/api/organizations
- *   GET https://claude.ai/api/organizations/{orgId}/usage
+ * Why this shape: claude.ai's internal usage endpoint sits behind
+ * Cloudflare bot protection that challenges requests not coming
+ * from a real, already-authenticated browser session. A server
+ * making its own outbound request (the original design of this
+ * file) gets served a Cloudflare JS challenge page and can never
+ * get real data, regardless of headers or session key validity.
  *
- * NOTE: These are undocumented/unofficial endpoints of the
- * claude.ai web app (not the public Claude API). They can change
- * without notice, and using a raw sessionKey this way is against
- * the spirit of "don't script the web session" — treat this as a
- * personal convenience tool, not something to distribute widely,
- * and rotate/revoke the session key if you ever suspect it leaked.
+ * The fix: read the data from INSIDE the browser (via a small
+ * Chrome extension content script, which inherits the trusted
+ * session and passes Cloudflare fine), then PUSH it here. This
+ * server never authenticates to claude.ai and never holds a
+ * session key — it only holds whatever usage numbers were last
+ * pushed to it, plus a shared secret to keep the push/pull
+ * endpoints from being open to the public internet.
  * ------------------------------------------------------------
  */
 
 const express = require('express');
-const fetch = require('node-fetch');
 const cors = require('cors');
 const { version: PROXY_VERSION } = require('./package.json');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const SESSION_KEY = process.env.CLAUDE_SESSION_KEY;
-const SHARED_SECRET = process.env.PROXY_SHARED_SECRET; // optional simple auth for your own R1 -> proxy calls
+app.use(express.json());
+app.use(cors());
 
-if (!SESSION_KEY) {
-  console.error('[FATAL] CLAUDE_SESSION_KEY environment variable is not set.');
-  console.error('        Set it before starting the server, e.g.:');
-  console.error('        CLAUDE_SESSION_KEY="sk-ant-sid01-..." npm start');
+const PORT = process.env.PORT || 3000;
+const SHARED_SECRET = process.env.PROXY_SHARED_SECRET;
+
+if (!SHARED_SECRET) {
+  console.error('[FATAL] PROXY_SHARED_SECRET environment variable is not set.');
+  console.error('        Without it, anyone could push fake usage data or read yours.');
+  console.error('        Set it before starting the server.');
   process.exit(1);
 }
 
-app.use(cors()); // R1 creation is hosted on a different origin than this proxy
-
-// Simple optional auth so randos who find your proxy URL can't ride your session key.
-// Set PROXY_SHARED_SECRET on the server and pass ?key=... from the R1 creation.
 function checkSharedSecret(req, res, next) {
-  if (!SHARED_SECRET) return next(); // no secret configured = open (fine for local/dev use only)
   const provided = req.query.key || req.headers['x-proxy-key'];
   if (provided !== SHARED_SECRET) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -56,155 +52,69 @@ function checkSharedSecret(req, res, next) {
   next();
 }
 
-// In-memory cache so we don't hammer claude.ai on every R1 poll
-let cache = { data: null, fetchedAt: 0 };
-const CACHE_TTL_MS = 60 * 1000; // 60s
-
-function buildHeaders() {
-  return {
-    Cookie: `sessionKey=${SESSION_KEY}`,
-    Accept: 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept-Language': 'en-US,en;q=0.9',
-    Origin: 'https://claude.ai',
-    Referer: 'https://claude.ai/'
-  };
-}
-
-async function fetchClaudeUsage() {
-  const headers = buildHeaders();
-
-  // 1. Get organization UUID
-  const orgsResp = await fetch('https://claude.ai/api/organizations', { headers });
-  if (!orgsResp.ok) {
-    throw new Error(`organizations request failed: ${orgsResp.status}`);
-  }
-  const orgs = await orgsResp.json();
-  if (!Array.isArray(orgs) || orgs.length === 0) {
-    throw new Error('no organizations returned — session key may be invalid or expired');
-  }
-  const orgId = orgs[0].uuid;
-
-  // 2. Get usage for that org
-  const usageResp = await fetch(`https://claude.ai/api/organizations/${orgId}/usage`, { headers });
-  if (!usageResp.ok) {
-    throw new Error(`usage request failed: ${usageResp.status}`);
-  }
-  const usage = await usageResp.json();
-
-  return normalizeUsage(usage);
-}
-
-/**
- * The exact shape of claude.ai's internal usage response is
- * undocumented and may vary. This normalizer defensively looks
- * for a few plausible field names/shapes and falls back to null
- * fields (rather than guessing) if it can't find them, so the
- * proxy fails loudly instead of quietly showing wrong numbers.
- */
-function normalizeUsage(raw) {
-  const session = extractWindow(raw, ['five_hour', 'session', 'five_hour_window']);
-  const weekly = extractWindow(raw, ['seven_day', 'weekly', 'seven_day_window']);
-
-  return {
-    session: session, // { usedPercent, resetsAt } or null
-    weekly: weekly,
-    raw_keys_seen: Object.keys(raw || {}), // helpful for debugging field names via /debug
-  };
-}
-
-function extractWindow(raw, candidateKeys) {
-  if (!raw) return null;
-  for (const key of candidateKeys) {
-    const w = raw[key];
-    if (w && typeof w === 'object') {
-      const usedPercent = toPercent(w.utilization ?? w.used_percent ?? w.percent_used ?? w.usage);
-      const resetsAt = w.resets_at ?? w.reset_time ?? w.resetTime ?? null;
-      if (usedPercent !== null) {
-        return { usedPercent, resetsAt };
-      }
-    }
-  }
-  return null;
-}
-
-function toPercent(v) {
-  if (v === undefined || v === null) return null;
-  const n = Number(v);
-  if (Number.isNaN(n)) return null;
-  // handle both 0-1 fractions and 0-100 percents
-  return n <= 1 ? Math.round(n * 100) : Math.round(n);
-}
-
-// ---------- Routes ----------
+// In-memory store of the last data pushed by the extension.
+// Ephemeral by design — Render's free tier filesystem is ephemeral
+// anyway, and losing this on a redeploy/restart just means the R1
+// shows stale data until the extension's next push (every few
+// minutes), not a real failure.
+let lastUsage = null; // { session: {usedPercent, resetsAt}, weekly: {...}, pushedAt: ISOString }
 
 app.get('/health', (req, res) => res.json({ ok: true, version: PROXY_VERSION }));
 
-app.get('/usage', checkSharedSecret, async (req, res) => {
-  try {
-    const now = Date.now();
-    if (cache.data && now - cache.fetchedAt < CACHE_TTL_MS) {
-      return res.json({ ...cache.data, cached: true, proxyVersion: PROXY_VERSION });
-    }
+// Extension calls this from inside your browser, every N minutes or
+// whenever the usage panel is visited/refreshed.
+app.post('/push', checkSharedSecret, (req, res) => {
+  const { session, weekly } = req.body || {};
 
-    const data = await fetchClaudeUsage();
-    cache = { data, fetchedAt: now };
-    res.json({ ...data, cached: false, proxyVersion: PROXY_VERSION });
-  } catch (err) {
-    console.error('[usage] error:', err.message);
-    res.status(502).json({
-      error: 'failed to fetch usage from claude.ai',
-      detail: err.message
+  if (!isValidWindow(session) || !isValidWindow(weekly)) {
+    return res.status(400).json({
+      error: 'invalid payload',
+      expected: {
+        session: { usedPercent: 'number 0-100', resetsAt: 'ISO string or null' },
+        weekly: { usedPercent: 'number 0-100', resetsAt: 'ISO string or null' }
+      }
     });
   }
+
+  lastUsage = {
+    session,
+    weekly,
+    pushedAt: new Date().toISOString()
+  };
+
+  console.log(`[push] session=${session.usedPercent}% weekly=${weekly.usedPercent}% at ${lastUsage.pushedAt}`);
+  res.json({ ok: true, stored: lastUsage });
 });
 
-// Raw passthrough for debugging field names if /usage comes back with nulls.
-// Remove or protect this in production — it exposes more of the raw response.
-app.get('/debug/raw', checkSharedSecret, async (req, res) => {
-  try {
-    const headers = buildHeaders();
-
-    const orgsResp = await fetch('https://claude.ai/api/organizations', { headers });
-    const orgsText = await orgsResp.text();
-    let orgsParsed = null;
-    try { orgsParsed = JSON.parse(orgsText); } catch (e) { /* not JSON, leave as text */ }
-
-    const debugInfo = {
-      organizations_request: {
-        status: orgsResp.status,
-        statusText: orgsResp.statusText,
-        headers_sent: { ...headers, Cookie: headers.Cookie.slice(0, 30) + '...[redacted]' },
-        response_headers: Object.fromEntries(orgsResp.headers.entries()),
-        body: orgsParsed ?? orgsText.slice(0, 1000) // cap length, avoid huge HTML dumps
-      }
-    };
-
-    if (!orgsResp.ok || !orgsParsed) {
-      // Stop here — no point calling usage if we couldn't even get the org id
-      return res.status(502).json(debugInfo);
-    }
-
-    const orgId = orgsParsed?.[0]?.uuid;
-    const usageResp = await fetch(`https://claude.ai/api/organizations/${orgId}/usage`, { headers });
-    const usageText = await usageResp.text();
-    let usageParsed = null;
-    try { usageParsed = JSON.parse(usageText); } catch (e) { /* not JSON */ }
-
-    debugInfo.orgId = orgId;
-    debugInfo.usage_request = {
-      status: usageResp.status,
-      statusText: usageResp.statusText,
-      body: usageParsed ?? usageText.slice(0, 1000)
-    };
-
-    res.json(debugInfo);
-  } catch (err) {
-    res.status(502).json({ error: err.message, stack: err.stack });
+// R1 calls this every few minutes to read the last pushed data.
+app.get('/usage', checkSharedSecret, (req, res) => {
+  if (!lastUsage) {
+    return res.status(404).json({
+      error: 'no data pushed yet',
+      detail: 'The Chrome extension needs to push at least once. Open claude.ai with the extension installed and active.'
+    });
   }
+
+  const ageMs = Date.now() - new Date(lastUsage.pushedAt).getTime();
+  res.json({
+    ...lastUsage,
+    ageSeconds: Math.round(ageMs / 1000),
+    proxyVersion: PROXY_VERSION
+  });
 });
+
+function isValidWindow(w) {
+  return (
+    w &&
+    typeof w === 'object' &&
+    typeof w.usedPercent === 'number' &&
+    w.usedPercent >= 0 &&
+    w.usedPercent <= 100
+  );
+}
 
 app.listen(PORT, () => {
-  console.log(`Claude usage proxy listening on :${PORT}`);
-  console.log(`Try: curl http://localhost:${PORT}/usage${SHARED_SECRET ? '?key=YOUR_SECRET' : ''}`);
+  console.log(`Claude usage relay listening on :${PORT}`);
+  console.log(`Push:  curl -X POST http://localhost:${PORT}/push?key=YOUR_SECRET -H "Content-Type: application/json" -d '{"session":{"usedPercent":22,"resetsAt":null},"weekly":{"usedPercent":2,"resetsAt":null}}'`);
+  console.log(`Pull:  curl http://localhost:${PORT}/usage?key=YOUR_SECRET`);
 });
