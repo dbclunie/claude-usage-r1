@@ -14,6 +14,12 @@ Bump the relevant version on every change to that component.
 
 ## Creation
 
+### v1.1.2
+- Time and version tag in the header are now brighter (`#ccc`/`#999`
+  instead of `#666`/`#444`) for legibility against the black background.
+- Time now displays 12-hour with AM/PM (e.g. `5:22 AM`) instead of
+  24-hour (`05:22`), via a new `formatTime12h()` helper.
+
 ### v1.1.1
 - Actually set `PROXY_URL` to the deployed relay + shared secret. Previous
   commits updated the surrounding comments for the new relay

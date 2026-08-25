@@ -47,12 +47,12 @@
   }
   .header .updated {
     font-size: 8px;
-    color: #666;
+    color: #ccc;
   }
 
   .version-tag {
     font-size: 7px;
-    color: #444;
+    color: #999;
     text-align: right;
     margin-top: -4px;
     margin-bottom: 6px;
@@ -248,7 +248,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.1.2';
 
 /* ===========================================================
 
@@ -424,8 +424,7 @@ function renderUsageScreen() {
   document.getElementById('weeklyReset').textContent = 'resets in ' + state.weeklyResetDays + 'd';
 
   const now = new Date();
-  document.getElementById('updatedAt').textContent =
-    now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+  document.getElementById('updatedAt').textContent = formatTime12h(now);
 
   // highlight focused metric card
   document.getElementById('metric-session').classList.toggle('selected', usageFocusIndex === 0);
@@ -456,6 +455,15 @@ function formatMinutes(mins) {
   const m = mins % 60;
   if (h > 0) return h + 'h ' + m + 'm';
   return m + 'm';
+}
+
+function formatTime12h(date) {
+  let h = date.getHours();
+  const m = date.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12; // midnight/noon show as 12, not 0
+  return h + ':' + m + ' ' + ampm;
 }
 
 // ---------- Hardware input: scroll wheel + PTT (sideClick) ----------
