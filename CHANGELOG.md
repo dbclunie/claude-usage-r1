@@ -29,6 +29,16 @@ at `1.0.0` as of this repo's initial publish.
 
 ## Proxy
 
+### v1.0.2
+- `/debug/raw` now surfaces the actual response status, headers, and
+  body text from claude.ai instead of throwing/hiding it behind a
+  generic error — needed because a persistent 403 on
+  `/api/organizations` gave no visibility into *why* (bot detection
+  page? Cloudflare challenge? auth-specific error message?). Body is
+  parsed as JSON when possible, otherwise returned as raw text
+  (capped at 1000 chars). Session cookie value is truncated/redacted
+  in the echoed request headers.
+
 ### v1.0.1
 - Send full browser-like request headers (User-Agent, Accept-Language,
   Origin, Referer) to claude.ai, not just the session cookie — the

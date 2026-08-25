@@ -164,14 +164,43 @@ app.get('/usage', checkSharedSecret, async (req, res) => {
 app.get('/debug/raw', checkSharedSecret, async (req, res) => {
   try {
     const headers = buildHeaders();
+
     const orgsResp = await fetch('https://claude.ai/api/organizations', { headers });
-    const orgs = await orgsResp.json();
-    const orgId = orgs?.[0]?.uuid;
+    const orgsText = await orgsResp.text();
+    let orgsParsed = null;
+    try { orgsParsed = JSON.parse(orgsText); } catch (e) { /* not JSON, leave as text */ }
+
+    const debugInfo = {
+      organizations_request: {
+        status: orgsResp.status,
+        statusText: orgsResp.statusText,
+        headers_sent: { ...headers, Cookie: headers.Cookie.slice(0, 30) + '...[redacted]' },
+        response_headers: Object.fromEntries(orgsResp.headers.entries()),
+        body: orgsParsed ?? orgsText.slice(0, 1000) // cap length, avoid huge HTML dumps
+      }
+    };
+
+    if (!orgsResp.ok || !orgsParsed) {
+      // Stop here — no point calling usage if we couldn't even get the org id
+      return res.status(502).json(debugInfo);
+    }
+
+    const orgId = orgsParsed?.[0]?.uuid;
     const usageResp = await fetch(`https://claude.ai/api/organizations/${orgId}/usage`, { headers });
-    const usage = await usageResp.json();
-    res.json({ orgId, usage });
+    const usageText = await usageResp.text();
+    let usageParsed = null;
+    try { usageParsed = JSON.parse(usageText); } catch (e) { /* not JSON */ }
+
+    debugInfo.orgId = orgId;
+    debugInfo.usage_request = {
+      status: usageResp.status,
+      statusText: usageResp.statusText,
+      body: usageParsed ?? usageText.slice(0, 1000)
+    };
+
+    res.json(debugInfo);
   } catch (err) {
-    res.status(502).json({ error: err.message });
+    res.status(502).json({ error: err.message, stack: err.stack });
   }
 });
 
