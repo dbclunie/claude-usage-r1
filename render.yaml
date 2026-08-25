@@ -3,6 +3,7 @@ services:
     name: claude-usage-proxy
     runtime: node
     plan: free
+    rootDir: proxy
     buildCommand: npm install
     startCommand: npm start
     envVars:
