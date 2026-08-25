@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: claude-usage-proxy
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: CLAUDE_SESSION_KEY
+        sync: false
+      - key: PROXY_SHARED_SECRET
+        sync: false
+      - key: PORT
+        value: 10000
