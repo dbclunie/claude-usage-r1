@@ -14,6 +14,22 @@ Bump the relevant version on every change to that component.
 
 ## Creation
 
+### v1.2.0
+- New "Last updated: <date> <time>" line below the footer hint, showing
+  when the extension actually last pushed data to the relay (`pushedAt`
+  from the `/usage` response) — distinct from the header clock, which
+  only shows when the R1 last rendered, not when the underlying data
+  was refreshed.
+- Date shown as "Today"/"Yesterday"/"Mon D" as appropriate; time in the
+  same 12h AM/PM format as the header.
+- Turns amber past 15 minutes since the last push (well beyond the
+  extension's ~4 min normal cadence) as a visible staleness warning.
+  Shows "Last updated: never" (also amber) if no push has landed yet.
+- `getUsageData()` and `syncUsage()` now carry `pushedAt` through from
+  the relay response into persisted state, only overwriting on a real
+  value so a transient fetch error doesn't wipe the last known
+  timestamp.
+
 ### v1.1.2
 - Time and version tag in the header are now brighter (`#ccc`/`#999`
   instead of `#666`/`#444`) for legibility against the black background.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=240, height=282, initial-scale=1.0, user-scalable=no">
-<title>Claude Usage v1.1</title>
+<title>Claude Usage v1.2</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -121,6 +121,16 @@
     padding-top: 4px;
   }
 
+  .last-updated {
+    text-align: center;
+    font-size: 7px;
+    color: #666;
+    padding-top: 2px;
+  }
+  .last-updated.stale {
+    color: #b45309; /* amber, matches caution tier — data may be out of date */
+  }
+
   /* ---------- Screen: Settings / Manual Entry ---------- */
   .settings-row {
     display: flex;
@@ -211,6 +221,7 @@
     </div>
 
     <div class="footer-hint" id="mainHint">scroll ↕ · click=settings · hold=sync</div>
+    <div class="last-updated" id="lastUpdated">Last updated: --</div>
   </div>
 
   <!-- SETTINGS / MANUAL ENTRY SCREEN -->
@@ -248,7 +259,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.1.2';
+const APP_VERSION = '1.2.0';
 
 /* ===========================================================
 
@@ -352,6 +363,7 @@ async function getUsageData(manualOverride) {
       weekly: clamp(json.weekly.usedPercent, 0, 100),
       sessionResetMinutes,
       weeklyResetDays,
+      pushedAt: json.pushedAt ?? null, // when the extension last pushed real data — distinct from when the R1 last fetched it
       source: 'live'
     };
   } catch (err) {
@@ -386,7 +398,8 @@ let state = {
   session: 45,
   weekly: 32,
   sessionResetMinutes: 180,
-  weeklyResetDays: 3
+  weeklyResetDays: 3,
+  pushedAt: null // ISO timestamp of when the extension last pushed real data to the relay
 };
 
 let currentScreen = 'usage'; // 'usage' | 'settings'
@@ -426,9 +439,43 @@ function renderUsageScreen() {
   const now = new Date();
   document.getElementById('updatedAt').textContent = formatTime12h(now);
 
+  renderLastUpdated();
+
   // highlight focused metric card
   document.getElementById('metric-session').classList.toggle('selected', usageFocusIndex === 0);
   document.getElementById('metric-weekly').classList.toggle('selected', usageFocusIndex === 1);
+}
+
+const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 min — well beyond the ~4 min push cadence
+
+function renderLastUpdated() {
+  const el = document.getElementById('lastUpdated');
+  if (!state.pushedAt) {
+    el.textContent = 'Last updated: never';
+    el.classList.add('stale');
+    return;
+  }
+
+  const pushedDate = new Date(state.pushedAt);
+  const ageMs = Date.now() - pushedDate.getTime();
+  const dateStr = formatShortDate(pushedDate);
+  const timeStr = formatTime12h(pushedDate);
+
+  el.textContent = 'Last updated: ' + dateStr + ' ' + timeStr;
+  el.classList.toggle('stale', ageMs > STALE_THRESHOLD_MS);
+}
+
+function formatShortDate(date) {
+  const today = new Date();
+  const isToday = date.toDateString() === today.toDateString();
+  if (isToday) return 'Today';
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[date.getMonth()] + ' ' + date.getDate();
 }
 
 function renderSettingsScreen() {
@@ -542,6 +589,7 @@ async function syncUsage() {
   state.weekly = data.weekly;
   state.sessionResetMinutes = data.sessionResetMinutes;
   state.weeklyResetDays = data.weeklyResetDays;
+  if (data.pushedAt) state.pushedAt = data.pushedAt; // only overwrite on a real value — keep last-known on error/unconfigured
   await saveState(state);
   if (currentScreen === 'usage') renderUsageScreen();
 }
