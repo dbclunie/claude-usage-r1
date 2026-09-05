@@ -14,6 +14,22 @@ Bump the relevant version on every change to that component.
 
 ## Creation
 
+### v1.3.0 (published as `index-v1.3.0.html`)
+- **Copyright notice** added: HTML comment block at top of source
+  (matching Review Radar format — proprietary/confidential, all rights
+  reserved) and in-app display in the Settings screen footer.
+- **PWA support**: `manifest.json`, `sw.js`, and `icons/` added.
+  - App shell cached for offline use (the display works without a
+    network; relay calls are deliberately never cached since live data
+    is the whole point).
+  - Manifest: `display: standalone`, dark background/theme color
+    matching the app's `#0d0d0d` background, orange `#FF6A00` accent.
+  - Icons: 192px, 512px (any), 512px (maskable) — orange ring on dark
+    background, two dots suggesting the session/weekly dual-metric.
+  - Service worker registered in `init()`, failure is non-fatal (app
+    works identically without it).
+  - PWA manifest link + Apple meta tags added to `<head>`.
+
 ### v1.2.3 (published as `index-v1.2.3.html`)
 - `.metric-sub` color: `#777` → `#FBBF24` (amber). The "X% left" and
   "resets in Yh Zm / Yd" lines below each bar were too dim to read on
