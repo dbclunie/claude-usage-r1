@@ -211,7 +211,7 @@
       <span class="title">Claude Usage</span>
       <span class="updated" id="updatedAt">--:--</span>
     </div>
-    <div class="version-tag" id="versionTag">v1.0.0</div>
+    <div class="version-tag" id="versionTag" onclick="switchScreen('changelog')" style="cursor:pointer" title="What's new">v1.0.0</div>
 
     <div class="metric" id="metric-session" data-index="0">
       <div class="metric-top">
@@ -266,6 +266,13 @@
     <div class="settings-hint" style="color:#444;font-size:6px;margin-top:2px">© 2026 David Clunie. All rights reserved.</div>
   </div>
 
+  <!-- Changelog screen — opened by tapping the version tag -->
+  <div id="screen-changelog" class="screen">
+    <div class="settings-title">What's New</div>
+    <div id="changelog-list" style="flex:1;overflow-y:auto;padding:0 4px"></div>
+    <div class="footer-hint">click PTT to go back</div>
+  </div>
+
 </div>
 
 <script>
@@ -278,7 +285,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 
 /* ===========================================================
 
@@ -428,7 +435,8 @@ let adjustMode = false;      // true while holding PTT to adjust a value in sett
 
 const screens = {
   usage: document.getElementById('screen-usage'),
-  settings: document.getElementById('screen-settings')
+  settings: document.getElementById('screen-settings'),
+  changelog: document.getElementById('screen-changelog')
 };
 
 // ---------- Render ----------
@@ -512,8 +520,10 @@ function switchScreen(name) {
   currentScreen = name;
   screens.usage.classList.toggle('active', name === 'usage');
   screens.settings.classList.toggle('active', name === 'settings');
+  screens.changelog.classList.toggle('active', name === 'changelog');
   if (name === 'usage') renderUsageScreen();
   if (name === 'settings') renderSettingsScreen();
+  if (name === 'changelog') renderChangelog();
 }
 
 function formatMinutes(mins) {
@@ -563,6 +573,13 @@ function handleScroll(direction) {
     return;
   }
 
+  if (currentScreen === 'changelog') {
+    // Scroll the changelog list manually
+    const list = document.getElementById('changelog-list');
+    list.scrollTop += direction * 40;
+    return;
+  }
+
   if (currentScreen === 'settings') {
     if (adjustMode) {
       // adjust the focused row's value in steps of 5
@@ -582,6 +599,11 @@ function handleScroll(direction) {
 function handleSelect() {
   if (currentScreen === 'usage') {
     switchScreen('settings');
+    return;
+  }
+
+  if (currentScreen === 'changelog') {
+    switchScreen('usage');
     return;
   }
 
@@ -614,6 +636,32 @@ async function syncUsage() {
 }
 
 // ---------- Init ----------
+// ---------- Changelog ----------
+const CHANGELOG = [
+  { v: '1.3.1', notes: ['version number now tappable — opens this What\u2019s New screen', 'scroll wheel scrolls the changelog, PTT goes back to usage'] },
+  { v: '1.3.0', notes: ['copyright notice added to source and Settings screen', 'PWA support — installable to home screen, works offline (relay calls always hit the network since live data is the point)'] },
+  { v: '1.2.3', notes: ['"% left" and "resets in..." text below each bar now in amber — was too dim to read on black background'] },
+  { v: '1.2.2', notes: ['R1 poll interval: 5 min → 90 sec', 'Extension push interval: 4 min → 1 min', 'Worst-case staleness now ~2.5 min instead of ~8–10 min'] },
+  { v: '1.2.1', notes: ['"Last updated" repositioned directly below the Session/Weekly boxes', 'Bigger (12px bold) and brighter (#ccc base) — was 7px #666', 'Amber now means fresh (within 15 min), grey means older'] },
+  { v: '1.2.0', notes: ['"Last updated: Today H:MM AM/PM" line added below the bars', 'Shows when the extension actually pushed data to the relay — distinct from when the R1 last polled', 'Amber within 15 min, grey after that'] },
+  { v: '1.1.2', notes: ['Header time and version tag brighter (#ccc / #999 vs #666 / #444)', 'Time now 12-hour AM/PM format instead of 24-hour'] },
+  { v: '1.1.1', notes: ['Fix: PROXY_URL was left empty in previous builds — was silently showing placeholder 45%/32% the whole time despite the relay and extension working correctly'] },
+  { v: '1.1.0', notes: ['Architecture change: relay no longer fetches claude.ai directly — Cloudflare bot protection blocks server-side fetches regardless of headers', 'Chrome extension now reads usage from inside your logged-in browser tab and pushes to the relay', 'Relay is now a simple push/pull store — no session key needed'] },
+  { v: '1.0.0', notes: ['Initial release — 240×282px R1 Creation', 'Session (5h) and Weekly usage bars with color coding', 'Scroll wheel navigation, PTT for settings', 'Auto-sync every 5 min, long-press for immediate sync', 'Manual value entry as fallback in Settings'] }
+];
+
+function renderChangelog() {
+  const list = document.getElementById('changelog-list');
+  list.innerHTML = CHANGELOG.map(entry => `
+    <div style="margin-bottom:12px">
+      <div style="color:#FF6A00;font-size:10px;font-weight:700;margin-bottom:3px">v${entry.v}</div>
+      <ul style="margin:0;padding-left:14px;color:#ccc;font-size:8px;line-height:1.7">
+        ${entry.notes.map(n => `<li>${n}</li>`).join('')}
+      </ul>
+    </div>`).join('');
+  list.scrollTop = 0;
+}
+
 async function init() {
   document.getElementById('versionTag').textContent = 'v' + APP_VERSION;
   const saved = await loadState();
