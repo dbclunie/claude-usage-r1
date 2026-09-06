@@ -270,7 +270,11 @@
   <div id="screen-changelog" class="screen">
     <div class="settings-title">What's New</div>
     <div id="changelog-list" style="flex:1;overflow-y:auto;padding:0 4px"></div>
-    <div class="footer-hint">click PTT to go back</div>
+    <div class="settings-row" onclick="switchScreen('usage')" style="cursor:pointer;flex-shrink:0;margin-top:4px">
+      <span class="label">◂ Back to usage</span>
+      <span class="value"></span>
+    </div>
+    <div class="footer-hint">scroll ↕ to read · click PTT or Back to return</div>
   </div>
 
 </div>
@@ -285,7 +289,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.3.2';
 
 /* ===========================================================
 
@@ -638,6 +642,7 @@ async function syncUsage() {
 // ---------- Init ----------
 // ---------- Changelog ----------
 const CHANGELOG = [
+  { v: '1.3.2', notes: ['changelog back button is now a real tappable row (was just hint text)'] },
   { v: '1.3.1', notes: ['version number now tappable — opens this What\u2019s New screen', 'scroll wheel scrolls the changelog, PTT goes back to usage'] },
   { v: '1.3.0', notes: ['copyright notice added to source and Settings screen', 'PWA support — installable to home screen, works offline (relay calls always hit the network since live data is the point)'] },
   { v: '1.2.3', notes: ['"% left" and "resets in..." text below each bar now in amber — was too dim to read on black background'] },
