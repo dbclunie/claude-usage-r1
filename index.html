@@ -132,7 +132,7 @@
     margin-top: auto;
     text-align: center;
     font-size: 8px;
-    color: #555;
+    color: #999;
     padding-top: 4px;
   }
 
@@ -290,7 +290,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.3.4';
+const APP_VERSION = '1.3.5';
 
 /* ===========================================================
 
@@ -643,6 +643,7 @@ async function syncUsage() {
 // ---------- Init ----------
 // ---------- Changelog ----------
 const CHANGELOG = [
+  { v: '1.3.5', notes: ['scroll hint text brightness matched to copyright (#555 → #999)'] },
   { v: '1.3.4', notes: ['copyright notice now shown on main screen below the scroll hint, matching Settings screen'] },
   { v: '1.3.3', notes: ['copyright text in Settings footer brightened (#444 → #999)'] },
   { v: '1.3.2', notes: ['changelog back button is now a real tappable row (was just hint text)'] },
