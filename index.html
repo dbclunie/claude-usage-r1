@@ -18,17 +18,179 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Claude Usage">
-<title>Claude Usage v1.3</title>
+<title>Claude Usage v1.4</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  /* ---------- Design tokens — Dark (default) ---------- */
+  :root {
+    --bg:        #000000;
+    --surface:   #121212;
+    --surface-2: #1a1a1a;
+    --border:    #262626;
+    --border-2:  #1c1c1c;
+    --text:      #f5f5f5;
+    --text-2:    #cccccc;
+    --text-3:    #aaaaaa;
+    --text-4:    #999999;
+    --accent:    #FF6A00;
+    --accent-on: #ffffff;
+    --good:      #4ADE80;
+    --caution:   #FBBF24;
+    --critical:  #F87171;
+  }
+
+  /* ---------- Light ---------- */
+  [data-theme="light"] {
+    --bg:        #F2F2F0;
+    --surface:   #FFFFFF;
+    --surface-2: #E8E8E5;
+    --border:    #D0CFC8;
+    --border-2:  #E0DFD8;
+    --text:      #1A1A18;
+    --text-2:    #3A3A38;
+    --text-3:    #606060;
+    --text-4:    #888888;
+    --accent:    #C95200;
+    --accent-on: #FFFFFF;
+    --good:      #2E9E52;
+    --caution:   #B08000;
+    --critical:  #C93030;
+  }
+
+  /* ---------- Volcanic Desert (Red) ---------- */
+  [data-theme="volcanic"] {
+    --bg:        #1A0A08;
+    --surface:   #271210;
+    --surface-2: #321815;
+    --border:    #4A2020;
+    --border-2:  #3A1818;
+    --text:      #F2D9D4;
+    --text-2:    #D4A8A0;
+    --text-3:    #B88880;
+    --text-4:    #906860;
+    --accent:    #E8402F;
+    --accent-on: #FFFFFF;
+    --good:      #C8A040;
+    --caution:   #E8802F;
+    --critical:  #FF3020;
+  }
+
+  /* ---------- Desert Orange ---------- */
+  [data-theme="desert"] {
+    --bg:        #241A14;
+    --surface:   #302219;
+    --surface-2: #3D2C21;
+    --border:    #4F3A2B;
+    --border-2:  #3A2A1C;
+    --text:      #F2E4D4;
+    --text-2:    #C7AE94;
+    --text-3:    #A08060;
+    --text-4:    #806048;
+    --accent:    #E8792F;
+    --accent-on: #1A0C04;
+    --good:      #A8B54A;
+    --caution:   #F0A93C;
+    --critical:  #D6483C;
+  }
+
+  /* ---------- Plains Yellow ---------- */
+  [data-theme="plains"] {
+    --bg:        #1A1908;
+    --surface:   #252410;
+    --surface-2: #302E18;
+    --border:    #484620;
+    --border-2:  #383618;
+    --text:      #F0EDD4;
+    --text-2:    #CCC890;
+    --text-3:    #A8A460;
+    --text-4:    #888440;
+    --accent:    #D4B800;
+    --accent-on: #1A1900;
+    --good:      #80C840;
+    --caution:   #D4B800;
+    --critical:  #E05030;
+  }
+
+  /* ---------- Forest Green ---------- */
+  [data-theme="forest"] {
+    --bg:        #091A0E;
+    --surface:   #112518;
+    --surface-2: #183020;
+    --border:    #244830;
+    --border-2:  #1A3820;
+    --text:      #D4EED9;
+    --text-2:    #90C898;
+    --text-3:    #60A068;
+    --text-4:    #407850;
+    --accent:    #3DBF6A;
+    --accent-on: #041008;
+    --good:      #3DBF6A;
+    --caution:   #C8B840;
+    --critical:  #D05040;
+  }
+
+  /* ---------- Blues Ocean ---------- */
+  [data-theme="ocean"] {
+    --bg:        #081422;
+    --surface:   #0F1E30;
+    --surface-2: #16283E;
+    --border:    #204060;
+    --border-2:  #183050;
+    --text:      #D4ECF2;
+    --text-2:    #88C4D8;
+    --text-3:    #5898B0;
+    --text-4:    #387090;
+    --accent:    #3FBFCF;
+    --accent-on: #041018;
+    --good:      #40C890;
+    --caution:   #60B8D8;
+    --critical:  #E05858;
+  }
+
+  /* ---------- Midnight Tundra (Indigo) ---------- */
+  [data-theme="tundra"] {
+    --bg:        #0D0D1A;
+    --surface:   #141426;
+    --surface-2: #1C1C32;
+    --border:    #2C2C50;
+    --border-2:  #202040;
+    --text:      #D4D8F2;
+    --text-2:    #9098D8;
+    --text-3:    #6068B0;
+    --text-4:    #404888;
+    --accent:    #6B7FE8;
+    --accent-on: #08081A;
+    --good:      #5090D8;
+    --caution:   #8888E0;
+    --critical:  #E05878;
+  }
+
+  /* ---------- Twilight Alpine (Violet) ---------- */
+  [data-theme="alpine"] {
+    --bg:        #140D1A;
+    --surface:   #1E1226;
+    --surface-2: #281830;
+    --border:    #442850;
+    --border-2:  #341840;
+    --text:      #EDD4F2;
+    --text-2:    #C890D8;
+    --text-3:    #A060B8;
+    --text-4:    #784090;
+    --accent:    #A855F7;
+    --accent-on: #100814;
+    --good:      #7858D8;
+    --caution:   #C878C0;
+    --critical:  #E85870;
+  }
 
   html, body {
     width: 240px;
     height: 282px;
     overflow: hidden;
-    background: #000000;
+    background: var(--bg);
     font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
-    color: #f5f5f5;
+    color: var(--text);
   }
 
   #app {
@@ -37,7 +199,6 @@
     position: relative;
   }
 
-  /* ---------- Screen: Usage ---------- */
   .screen {
     width: 240px;
     height: 282px;
@@ -57,31 +218,31 @@
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.5px;
-    color: #FF6A00; /* rabbit orange accent */
+    color: var(--accent);
     text-transform: uppercase;
   }
   .header .updated {
     font-size: 8px;
-    color: #ccc;
+    color: var(--text-2);
   }
 
   .version-tag {
     font-size: 7px;
-    color: #999;
+    color: var(--text-4);
     text-align: right;
     margin-top: -4px;
     margin-bottom: 6px;
   }
 
   .metric {
-    background: #121212;
-    border: 1px solid #262626;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 8px 10px;
     margin-bottom: 8px;
   }
   .metric.selected {
-    border-color: #FF6A00;
+    border-color: var(--accent);
   }
   .metric-top {
     display: flex;
@@ -91,7 +252,7 @@
   }
   .metric-label {
     font-size: 10px;
-    color: #aaa;
+    color: var(--text-3);
     text-transform: uppercase;
     letter-spacing: 0.4px;
   }
@@ -100,14 +261,14 @@
     font-weight: 700;
     line-height: 1;
   }
-  .metric-pct.good { color: #4ADE80; }
-  .metric-pct.caution { color: #FBBF24; }
-  .metric-pct.critical { color: #F87171; }
+  .metric-pct.good    { color: var(--good); }
+  .metric-pct.caution { color: var(--caution); }
+  .metric-pct.critical{ color: var(--critical); }
 
   .bar-track {
     width: 100%;
     height: 6px;
-    background: #262626;
+    background: var(--border);
     border-radius: 3px;
     overflow: hidden;
     margin-bottom: 4px;
@@ -117,13 +278,13 @@
     border-radius: 3px;
     transition: width 0.4s ease;
   }
-  .bar-fill.good { background: #4ADE80; }
-  .bar-fill.caution { background: #FBBF24; }
-  .bar-fill.critical { background: #F87171; }
+  .bar-fill.good     { background: var(--good); }
+  .bar-fill.caution  { background: var(--caution); }
+  .bar-fill.critical { background: var(--critical); }
 
   .metric-sub {
     font-size: 8px;
-    color: #FBBF24;
+    color: var(--caution);
     display: flex;
     justify-content: space-between;
   }
@@ -132,7 +293,7 @@
     margin-top: auto;
     text-align: center;
     font-size: 8px;
-    color: #999;
+    color: var(--text-4);
     padding-top: 4px;
   }
 
@@ -140,40 +301,39 @@
     text-align: center;
     font-size: 12px;
     font-weight: 700;
-    color: #ccc;
+    color: var(--text-2);
     padding-top: 6px;
     padding-bottom: 2px;
   }
   .last-updated.fresh {
-    color: #FBBF24; /* amber — updated within the last 15 min */
+    color: var(--caution);
   }
 
-  /* ---------- Screen: Settings / Manual Entry ---------- */
   .settings-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 6px 4px;
-    border-bottom: 1px solid #1c1c1c;
+    border-bottom: 1px solid var(--border-2);
   }
   .settings-row.focused {
-    background: #1a1a1a;
+    background: var(--surface-2);
     border-radius: 4px;
   }
   .settings-row .label {
     font-size: 10px;
-    color: #ccc;
+    color: var(--text-2);
   }
   .settings-row .value {
     font-size: 12px;
     font-weight: 700;
-    color: #FF6A00;
+    color: var(--accent);
   }
 
   .settings-title {
     font-size: 11px;
     font-weight: 700;
-    color: #fff;
+    color: var(--text);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 8px;
@@ -182,17 +342,16 @@
   .settings-hint {
     margin-top: auto;
     font-size: 8px;
-    color: #555;
+    color: var(--text-4);
     text-align: center;
     line-height: 1.4;
   }
 
-  /* ---------- Loading dots ---------- */
   .dots span {
     display: inline-block;
     width: 4px; height: 4px;
     border-radius: 50%;
-    background: #FF6A00;
+    background: var(--accent);
     margin: 0 2px;
     animation: blink 1.2s infinite ease-in-out both;
   }
@@ -240,12 +399,12 @@
     <div class="last-updated" id="lastUpdated">Last updated: --</div>
 
     <div class="footer-hint" id="mainHint">scroll ↕ · click=settings · hold=sync</div>
-    <div class="footer-hint" style="color:#999;font-size:6px;margin-top:2px">© 2026 David Clunie. All rights reserved.</div>
+    <div class="footer-hint" style="color:var(--text-4);font-size:6px;margin-top:2px">© 2026 David Clunie. All rights reserved.</div>
   </div>
 
   <!-- SETTINGS / MANUAL ENTRY SCREEN -->
   <div id="screen-settings" class="screen">
-    <div class="settings-title">Set Usage %</div>
+    <div class="settings-title">Settings</div>
 
     <div class="settings-row" id="row-session" data-index="0">
       <span class="label">Session</span>
@@ -255,16 +414,27 @@
       <span class="label">Weekly</span>
       <span class="value" id="setWeeklyVal">32%</span>
     </div>
-    <div class="settings-row" id="row-back" data-index="2">
+    <div class="settings-row" id="row-theme" data-index="2">
+      <span class="label">Theme</span>
+      <span class="value" id="setThemeVal">Dark</span>
+    </div>
+    <div class="settings-row" id="row-back" data-index="3">
       <span class="label">◂ Back to usage</span>
       <span class="value"></span>
     </div>
 
     <div class="settings-hint">
-      scroll ↕ to move · hold PTT + scroll to adjust value · click row to select
+      scroll ↕ to move · hold PTT + scroll to adjust · click to select
     </div>
     <div class="settings-hint" id="versionFooter">v1.0.0</div>
-    <div class="settings-hint" style="color:#999;font-size:6px;margin-top:2px">© 2026 David Clunie. All rights reserved.</div>
+    <div class="settings-hint" style="color:var(--text-4);font-size:6px;margin-top:2px">© 2026 David Clunie. All rights reserved.</div>
+  </div>
+
+  <!-- Theme picker screen -->
+  <div id="screen-theme" class="screen">
+    <div class="settings-title">Choose Theme</div>
+    <div id="theme-list" style="flex:1;overflow-y:auto"></div>
+    <div class="footer-hint">scroll ↕ · click PTT to select · hold to go back</div>
   </div>
 
   <!-- Changelog screen — opened by tapping the version tag -->
@@ -290,7 +460,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.3.5';
+const APP_VERSION = '1.4.0';
 
 /* ===========================================================
 
@@ -430,17 +600,19 @@ let state = {
   weekly: 32,
   sessionResetMinutes: 180,
   weeklyResetDays: 3,
-  pushedAt: null // ISO timestamp of when the extension last pushed real data to the relay
+  pushedAt: null,
+  theme: 'dark'
 };
 
 let currentScreen = 'usage'; // 'usage' | 'settings'
 let usageFocusIndex = 0;     // 0 = session, 1 = weekly (for possible future per-card actions)
-let settingsFocusIndex = 0;  // 0 = session row, 1 = weekly row, 2 = back row
+let settingsFocusIndex = 0;  // 0=session, 1=weekly, 2=theme, 3=back
 let adjustMode = false;      // true while holding PTT to adjust a value in settings
 
 const screens = {
   usage: document.getElementById('screen-usage'),
   settings: document.getElementById('screen-settings'),
+  theme: document.getElementById('screen-theme'),
   changelog: document.getElementById('screen-changelog')
 };
 
@@ -513,9 +685,10 @@ function formatShortDate(date) {
 function renderSettingsScreen() {
   document.getElementById('setSessionVal').textContent = state.session + '%';
   document.getElementById('setWeeklyVal').textContent = state.weekly + '%';
+  document.getElementById('setThemeVal').textContent = THEMES.find(t => t.id === state.theme)?.label || 'Dark';
   document.getElementById('versionFooter').textContent = 'v' + APP_VERSION;
 
-  const rows = ['row-session', 'row-weekly', 'row-back'];
+  const rows = ['row-session', 'row-weekly', 'row-theme', 'row-back'];
   rows.forEach((id, i) => {
     document.getElementById(id).classList.toggle('focused', settingsFocusIndex === i);
   });
@@ -525,9 +698,11 @@ function switchScreen(name) {
   currentScreen = name;
   screens.usage.classList.toggle('active', name === 'usage');
   screens.settings.classList.toggle('active', name === 'settings');
+  screens.theme.classList.toggle('active', name === 'theme');
   screens.changelog.classList.toggle('active', name === 'changelog');
   if (name === 'usage') renderUsageScreen();
   if (name === 'settings') renderSettingsScreen();
+  if (name === 'theme') renderThemePicker();
   if (name === 'changelog') renderChangelog();
 }
 
@@ -568,6 +743,11 @@ function handleLongPressStart() {
     });
     return;
   }
+  if (currentScreen === 'theme') {
+    // Long-press on theme screen = go back to settings without changing theme
+    switchScreen('settings');
+    return;
+  }
   adjustMode = true;
 }
 
@@ -579,15 +759,19 @@ function handleScroll(direction) {
   }
 
   if (currentScreen === 'changelog') {
-    // Scroll the changelog list manually
     const list = document.getElementById('changelog-list');
     list.scrollTop += direction * 40;
     return;
   }
 
+  if (currentScreen === 'theme') {
+    themeFocusIndex = clamp(themeFocusIndex + direction, 0, THEMES.length - 1);
+    renderThemePicker();
+    return;
+  }
+
   if (currentScreen === 'settings') {
     if (adjustMode) {
-      // adjust the focused row's value in steps of 5
       if (settingsFocusIndex === 0) {
         state.session = clamp(state.session - direction * 5, 0, 100);
       } else if (settingsFocusIndex === 1) {
@@ -595,7 +779,7 @@ function handleScroll(direction) {
       }
       renderSettingsScreen();
     } else {
-      settingsFocusIndex = clamp(settingsFocusIndex + direction, 0, 2);
+      settingsFocusIndex = clamp(settingsFocusIndex + direction, 0, 3);
       renderSettingsScreen();
     }
   }
@@ -612,13 +796,27 @@ function handleSelect() {
     return;
   }
 
+  if (currentScreen === 'theme') {
+    // Apply the focused theme
+    state.theme = THEMES[themeFocusIndex].id;
+    applyTheme(state.theme);
+    saveState(state);
+    switchScreen('settings');
+    return;
+  }
+
   if (currentScreen === 'settings') {
     if (settingsFocusIndex === 2) {
+      // Theme row — open theme picker, pre-focused on current theme
+      themeFocusIndex = THEMES.findIndex(t => t.id === state.theme);
+      if (themeFocusIndex < 0) themeFocusIndex = 0;
+      switchScreen('theme');
+    } else if (settingsFocusIndex === 3) {
       // Back row
       saveState(state);
       switchScreen('usage');
     }
-    // rows 0/1: click just confirms focus; actual adjust is via long-press+scroll
+    // rows 0/1: adjust via long-press+scroll
   }
 }
 
@@ -641,8 +839,49 @@ async function syncUsage() {
 }
 
 // ---------- Init ----------
+// ---------- Themes ----------
+const THEMES = [
+  { id: 'dark',     label: 'Dark' },
+  { id: 'light',    label: 'Light' },
+  { id: 'volcanic', label: 'Volcanic Desert' },
+  { id: 'desert',   label: 'Desert Orange' },
+  { id: 'plains',   label: 'Plains Yellow' },
+  { id: 'forest',   label: 'Forest Green' },
+  { id: 'ocean',    label: 'Blues Ocean' },
+  { id: 'tundra',   label: 'Midnight Tundra' },
+  { id: 'alpine',   label: 'Twilight Alpine' }
+];
+
+let themeFocusIndex = 0;
+
+function applyTheme(id) {
+  if (id === 'dark' || !id) {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', id);
+  }
+}
+
+function renderThemePicker() {
+  const list = document.getElementById('theme-list');
+  list.innerHTML = THEMES.map((t, i) => {
+    const isActive = t.id === state.theme;
+    const isFocused = i === themeFocusIndex;
+    return `<div class="settings-row${isFocused ? ' focused' : ''}" style="cursor:pointer" onclick="themeFocusIndex=${i};applyTheme('${t.id}');state.theme='${t.id}';saveState(state);switchScreen('settings')">
+      <span class="label">${t.label}</span>
+      <span class="value" style="font-size:10px">${isActive ? '✓' : ''}</span>
+    </div>`;
+  }).join('');
+  // Auto-scroll to keep focused item visible
+  const rows = list.querySelectorAll('.settings-row');
+  if (rows[themeFocusIndex]) {
+    rows[themeFocusIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
+
 // ---------- Changelog ----------
 const CHANGELOG = [
+  { v: '1.4.0', notes: ['theme system added — 9 presets: Dark, Light, Volcanic Desert (Red), Desert Orange, Plains Yellow, Forest Green, Blues Ocean (Blue), Midnight Tundra (Indigo), Twilight Alpine (Violet)', 'all colors refactored to CSS custom properties', 'theme picker in Settings > Theme, scroll to browse, PTT to select, hold to go back', 'selected theme persists across sessions'] },
   { v: '1.3.5', notes: ['scroll hint text brightness matched to copyright (#555 → #999)'] },
   { v: '1.3.4', notes: ['copyright notice now shown on main screen below the scroll hint, matching Settings screen'] },
   { v: '1.3.3', notes: ['copyright text in Settings footer brightened (#444 → #999)'] },
@@ -663,8 +902,8 @@ function renderChangelog() {
   const list = document.getElementById('changelog-list');
   list.innerHTML = CHANGELOG.map(entry => `
     <div style="margin-bottom:12px">
-      <div style="color:#FF6A00;font-size:10px;font-weight:700;margin-bottom:3px">v${entry.v}</div>
-      <ul style="margin:0;padding-left:14px;color:#ccc;font-size:8px;line-height:1.7">
+      <div style="color:var(--accent);font-size:10px;font-weight:700;margin-bottom:3px">v${entry.v}</div>
+      <ul style="margin:0;padding-left:14px;color:var(--text-2);font-size:8px;line-height:1.7">
         ${entry.notes.map(n => `<li>${n}</li>`).join('')}
       </ul>
     </div>`).join('');
@@ -676,6 +915,7 @@ async function init() {
   const saved = await loadState();
   if (saved) {
     state = { ...state, ...saved };
+    applyTheme(state.theme); // apply saved theme before first render
     renderUsageScreen();
   }
   // Always attempt a live sync on load (falls back gracefully if unconfigured/offline)
