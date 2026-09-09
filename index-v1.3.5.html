@@ -1,0 +1,697 @@
+<!--
+  Claude Usage Monitor — Rabbit R1 Creation
+  Copyright (c) 2026 David Clunie. All rights reserved.
+  This source code is proprietary and confidential. No part of this file may be
+  reproduced, distributed, or used to create derivative works without express
+  written permission from the copyright holder.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=240, height=282, initial-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Claude Usage">
+<title>Claude Usage v1.3</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 240px;
+    height: 282px;
+    overflow: hidden;
+    background: #000000;
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    color: #f5f5f5;
+  }
+
+  #app {
+    width: 240px;
+    height: 282px;
+    position: relative;
+  }
+
+  /* ---------- Screen: Usage ---------- */
+  .screen {
+    width: 240px;
+    height: 282px;
+    display: none;
+    flex-direction: column;
+    padding: 10px 12px 8px 12px;
+  }
+  .screen.active { display: flex; }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .header .title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #FF6A00; /* rabbit orange accent */
+    text-transform: uppercase;
+  }
+  .header .updated {
+    font-size: 8px;
+    color: #ccc;
+  }
+
+  .version-tag {
+    font-size: 7px;
+    color: #999;
+    text-align: right;
+    margin-top: -4px;
+    margin-bottom: 6px;
+  }
+
+  .metric {
+    background: #121212;
+    border: 1px solid #262626;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+  }
+  .metric.selected {
+    border-color: #FF6A00;
+  }
+  .metric-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .metric-label {
+    font-size: 10px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .metric-pct {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .metric-pct.good { color: #4ADE80; }
+  .metric-pct.caution { color: #FBBF24; }
+  .metric-pct.critical { color: #F87171; }
+
+  .bar-track {
+    width: 100%;
+    height: 6px;
+    background: #262626;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .bar-fill.good { background: #4ADE80; }
+  .bar-fill.caution { background: #FBBF24; }
+  .bar-fill.critical { background: #F87171; }
+
+  .metric-sub {
+    font-size: 8px;
+    color: #FBBF24;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .footer-hint {
+    margin-top: auto;
+    text-align: center;
+    font-size: 8px;
+    color: #999;
+    padding-top: 4px;
+  }
+
+  .last-updated {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ccc;
+    padding-top: 6px;
+    padding-bottom: 2px;
+  }
+  .last-updated.fresh {
+    color: #FBBF24; /* amber — updated within the last 15 min */
+  }
+
+  /* ---------- Screen: Settings / Manual Entry ---------- */
+  .settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 4px;
+    border-bottom: 1px solid #1c1c1c;
+  }
+  .settings-row.focused {
+    background: #1a1a1a;
+    border-radius: 4px;
+  }
+  .settings-row .label {
+    font-size: 10px;
+    color: #ccc;
+  }
+  .settings-row .value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #FF6A00;
+  }
+
+  .settings-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .settings-hint {
+    margin-top: auto;
+    font-size: 8px;
+    color: #555;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* ---------- Loading dots ---------- */
+  .dots span {
+    display: inline-block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #FF6A00;
+    margin: 0 2px;
+    animation: blink 1.2s infinite ease-in-out both;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- MAIN USAGE SCREEN -->
+  <div id="screen-usage" class="screen active">
+    <div class="header">
+      <span class="title">Claude Usage</span>
+      <span class="updated" id="updatedAt">--:--</span>
+    </div>
+    <div class="version-tag" id="versionTag" onclick="switchScreen('changelog')" style="cursor:pointer" title="What's new">v1.0.0</div>
+
+    <div class="metric" id="metric-session" data-index="0">
+      <div class="metric-top">
+        <span class="metric-label">Session (5h)</span>
+        <span class="metric-pct" id="sessionPct">--%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="sessionBar" style="width:0%"></div></div>
+      <div class="metric-sub">
+        <span id="sessionRemaining">-- left</span>
+        <span id="sessionReset">resets --:--</span>
+      </div>
+    </div>
+
+    <div class="metric" id="metric-weekly" data-index="1">
+      <div class="metric-top">
+        <span class="metric-label">Weekly</span>
+        <span class="metric-pct" id="weeklyPct">--%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="weeklyBar" style="width:0%"></div></div>
+      <div class="metric-sub">
+        <span id="weeklyRemaining">-- left</span>
+        <span id="weeklyReset">resets --</span>
+      </div>
+    </div>
+
+    <div class="last-updated" id="lastUpdated">Last updated: --</div>
+
+    <div class="footer-hint" id="mainHint">scroll ↕ · click=settings · hold=sync</div>
+    <div class="footer-hint" style="color:#999;font-size:6px;margin-top:2px">© 2026 David Clunie. All rights reserved.</div>
+  </div>
+
+  <!-- SETTINGS / MANUAL ENTRY SCREEN -->
+  <div id="screen-settings" class="screen">
+    <div class="settings-title">Set Usage %</div>
+
+    <div class="settings-row" id="row-session" data-index="0">
+      <span class="label">Session</span>
+      <span class="value" id="setSessionVal">45%</span>
+    </div>
+    <div class="settings-row" id="row-weekly" data-index="1">
+      <span class="label">Weekly</span>
+      <span class="value" id="setWeeklyVal">32%</span>
+    </div>
+    <div class="settings-row" id="row-back" data-index="2">
+      <span class="label">◂ Back to usage</span>
+      <span class="value"></span>
+    </div>
+
+    <div class="settings-hint">
+      scroll ↕ to move · hold PTT + scroll to adjust value · click row to select
+    </div>
+    <div class="settings-hint" id="versionFooter">v1.0.0</div>
+    <div class="settings-hint" style="color:#999;font-size:6px;margin-top:2px">© 2026 David Clunie. All rights reserved.</div>
+  </div>
+
+  <!-- Changelog screen — opened by tapping the version tag -->
+  <div id="screen-changelog" class="screen">
+    <div class="settings-title">What's New</div>
+    <div id="changelog-list" style="flex:1;overflow-y:auto;padding:0 4px"></div>
+    <div class="settings-row" onclick="switchScreen('usage')" style="cursor:pointer;flex-shrink:0;margin-top:4px">
+      <span class="label">◂ Back to usage</span>
+      <span class="value"></span>
+    </div>
+    <div class="footer-hint">scroll ↕ to read · click PTT or Back to return</div>
+  </div>
+
+</div>
+
+<script>
+/* ===========================================================
+   Claude Usage Monitor — R1 Creation
+   Screen: 240x282 fixed. Nav: scroll wheel + side (PTT) button.
+   Storage: window.creationStorage (R1 SDK), not localStorage.
+   ===========================================================
+
+   VERSION: bump on every change. Keep <title>, #versionTag,
+   APP_VERSION below, and CHANGELOG.md all in sync. */
+
+const APP_VERSION = '1.3.5';
+
+/* ===========================================================
+
+   DATA SOURCE — LIVE, via self-hosted relay
+   ------------------------------------------------------------
+   getUsageData() reads from PROXY_URL (set below), a small relay
+   server. It does NOT fetch claude.ai directly — that path gets
+   blocked by Cloudflare bot protection when it's not a real
+   browser session. Instead, a Chrome extension (see /extension in
+   the repo) reads usage data from inside your logged-in claude.ai
+   tab and pushes it to the relay; this device just pulls the last
+   pushed value. See /proxy in the repo for the relay server code.
+
+   Set PROXY_URL to your deployed relay, e.g.:
+     https://your-app.onrender.com/usage?key=YOUR_SHARED_SECRET
+   =========================================================== */
+
+const PROXY_URL = 'https://claude-usage-proxy-xz3n.onrender.com/usage?key=r1proxy9k2m';
+const FETCH_TIMEOUT_MS = 8000;
+
+// ---------- Storage helpers (R1 creationStorage, base64 JSON) ----------
+const STORAGE_KEY = 'claude_usage_state';
+
+function hasR1Storage() {
+  return typeof window.creationStorage !== 'undefined' && window.creationStorage.plain;
+}
+
+async function saveState(state) {
+  const json = JSON.stringify(state);
+  if (hasR1Storage()) {
+    try {
+      const encoded = btoa(json);
+      await window.creationStorage.plain.setItem(STORAGE_KEY, encoded);
+      return;
+    } catch (e) {
+      console.error('creationStorage save failed, falling back', e);
+    }
+  }
+  // Fallback for testing in a regular browser (not present on-device)
+  try { localStorage.setItem(STORAGE_KEY, json); } catch (e) {}
+}
+
+async function loadState() {
+  if (hasR1Storage()) {
+    try {
+      const encoded = await window.creationStorage.plain.getItem(STORAGE_KEY);
+      if (encoded) return JSON.parse(atob(encoded));
+    } catch (e) {
+      console.error('creationStorage load failed, falling back', e);
+    }
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return null;
+}
+
+// ---------- Live data source (via relay — see extension/ in the repo) ----------
+async function getUsageData(manualOverride) {
+  if (manualOverride) {
+    return {
+      session: manualOverride.session,
+      weekly: manualOverride.weekly,
+      sessionResetMinutes: manualOverride.sessionResetMinutes ?? 180,
+      weeklyResetDays: manualOverride.weeklyResetDays ?? 3,
+      source: 'manual'
+    };
+  }
+
+  if (!PROXY_URL) {
+    // Not configured yet — fall back to whatever is in state/defaults.
+    return {
+      session: state.session,
+      weekly: state.weekly,
+      sessionResetMinutes: state.sessionResetMinutes,
+      weeklyResetDays: state.weeklyResetDays,
+      source: 'unconfigured'
+    };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+    const resp = await fetch(PROXY_URL, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!resp.ok) throw new Error('proxy returned ' + resp.status);
+    const json = await resp.json();
+
+    if (!json.session || !json.weekly) {
+      throw new Error('proxy response missing session/weekly data');
+    }
+
+    const sessionResetMinutes = minutesUntil(json.session.resetsAt) ?? state.sessionResetMinutes;
+    const weeklyResetDays = daysUntil(json.weekly.resetsAt) ?? state.weeklyResetDays;
+
+    return {
+      session: clamp(json.session.usedPercent, 0, 100),
+      weekly: clamp(json.weekly.usedPercent, 0, 100),
+      sessionResetMinutes,
+      weeklyResetDays,
+      pushedAt: json.pushedAt ?? null, // when the extension last pushed real data — distinct from when the R1 last fetched it
+      source: 'live'
+    };
+  } catch (err) {
+    console.error('getUsageData failed, keeping last known values:', err.message);
+    return {
+      session: state.session,
+      weekly: state.weekly,
+      sessionResetMinutes: state.sessionResetMinutes,
+      weeklyResetDays: state.weeklyResetDays,
+      source: 'error',
+      error: err.message
+    };
+  }
+}
+
+function minutesUntil(isoString) {
+  if (!isoString) return null;
+  const diffMs = new Date(isoString).getTime() - Date.now();
+  if (Number.isNaN(diffMs)) return null;
+  return Math.max(0, Math.round(diffMs / 60000));
+}
+
+function daysUntil(isoString) {
+  if (!isoString) return null;
+  const diffMs = new Date(isoString).getTime() - Date.now();
+  if (Number.isNaN(diffMs)) return null;
+  return Math.max(0, Math.round(diffMs / 86400000));
+}
+
+// ---------- App state ----------
+let state = {
+  session: 45,
+  weekly: 32,
+  sessionResetMinutes: 180,
+  weeklyResetDays: 3,
+  pushedAt: null // ISO timestamp of when the extension last pushed real data to the relay
+};
+
+let currentScreen = 'usage'; // 'usage' | 'settings'
+let usageFocusIndex = 0;     // 0 = session, 1 = weekly (for possible future per-card actions)
+let settingsFocusIndex = 0;  // 0 = session row, 1 = weekly row, 2 = back row
+let adjustMode = false;      // true while holding PTT to adjust a value in settings
+
+const screens = {
+  usage: document.getElementById('screen-usage'),
+  settings: document.getElementById('screen-settings'),
+  changelog: document.getElementById('screen-changelog')
+};
+
+// ---------- Render ----------
+function levelClass(pct) {
+  if (pct >= 80) return 'critical';
+  if (pct >= 50) return 'caution';
+  return 'good';
+}
+
+function renderUsageScreen() {
+  const s = state.session, w = state.weekly;
+
+  document.getElementById('sessionPct').textContent = s + '%';
+  document.getElementById('sessionPct').className = 'metric-pct ' + levelClass(s);
+  document.getElementById('sessionBar').style.width = s + '%';
+  document.getElementById('sessionBar').className = 'bar-fill ' + levelClass(s);
+  document.getElementById('sessionRemaining').textContent = (100 - s) + '% left';
+  document.getElementById('sessionReset').textContent = 'resets ' + formatMinutes(state.sessionResetMinutes);
+
+  document.getElementById('weeklyPct').textContent = w + '%';
+  document.getElementById('weeklyPct').className = 'metric-pct ' + levelClass(w);
+  document.getElementById('weeklyBar').style.width = w + '%';
+  document.getElementById('weeklyBar').className = 'bar-fill ' + levelClass(w);
+  document.getElementById('weeklyRemaining').textContent = (100 - w) + '% left';
+  document.getElementById('weeklyReset').textContent = 'resets in ' + state.weeklyResetDays + 'd';
+
+  const now = new Date();
+  document.getElementById('updatedAt').textContent = formatTime12h(now);
+
+  renderLastUpdated();
+
+  // highlight focused metric card
+  document.getElementById('metric-session').classList.toggle('selected', usageFocusIndex === 0);
+  document.getElementById('metric-weekly').classList.toggle('selected', usageFocusIndex === 1);
+}
+
+const FRESH_THRESHOLD_MS = 15 * 60 * 1000; // 15 min — well within the ~4 min push cadence
+
+function renderLastUpdated() {
+  const el = document.getElementById('lastUpdated');
+  if (!state.pushedAt) {
+    el.textContent = 'Last updated: never';
+    el.classList.remove('fresh');
+    return;
+  }
+
+  const pushedDate = new Date(state.pushedAt);
+  const ageMs = Date.now() - pushedDate.getTime();
+  const dateStr = formatShortDate(pushedDate);
+  const timeStr = formatTime12h(pushedDate);
+
+  el.textContent = 'Last updated: ' + dateStr + ' ' + timeStr;
+  el.classList.toggle('fresh', ageMs <= FRESH_THRESHOLD_MS);
+}
+
+function formatShortDate(date) {
+  const today = new Date();
+  const isToday = date.toDateString() === today.toDateString();
+  if (isToday) return 'Today';
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[date.getMonth()] + ' ' + date.getDate();
+}
+
+function renderSettingsScreen() {
+  document.getElementById('setSessionVal').textContent = state.session + '%';
+  document.getElementById('setWeeklyVal').textContent = state.weekly + '%';
+  document.getElementById('versionFooter').textContent = 'v' + APP_VERSION;
+
+  const rows = ['row-session', 'row-weekly', 'row-back'];
+  rows.forEach((id, i) => {
+    document.getElementById(id).classList.toggle('focused', settingsFocusIndex === i);
+  });
+}
+
+function switchScreen(name) {
+  currentScreen = name;
+  screens.usage.classList.toggle('active', name === 'usage');
+  screens.settings.classList.toggle('active', name === 'settings');
+  screens.changelog.classList.toggle('active', name === 'changelog');
+  if (name === 'usage') renderUsageScreen();
+  if (name === 'settings') renderSettingsScreen();
+  if (name === 'changelog') renderChangelog();
+}
+
+function formatMinutes(mins) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
+}
+
+function formatTime12h(date) {
+  let h = date.getHours();
+  const m = date.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12; // midnight/noon show as 12, not 0
+  return h + ':' + m + ' ' + ampm;
+}
+
+// ---------- Hardware input: scroll wheel + PTT (sideClick) ----------
+// scrollUp / scrollDown: navigate focus
+// sideClick: select / toggle screen
+// longPressStart + scroll (while held): adjust value in settings (adjustMode)
+
+window.addEventListener('scrollUp', () => handleScroll(-1));
+window.addEventListener('scrollDown', () => handleScroll(1));
+window.addEventListener('sideClick', handleSelect);
+window.addEventListener('longPressStart', handleLongPressStart);
+window.addEventListener('longPressEnd', () => { adjustMode = false; saveState(state); });
+
+function handleLongPressStart() {
+  if (currentScreen === 'usage') {
+    // Long-press on main screen = force an immediate sync
+    const hint = document.getElementById('mainHint');
+    hint.textContent = 'syncing...';
+    syncUsage().then(() => {
+      hint.textContent = 'scroll ↕ · click=settings · hold=sync';
+    });
+    return;
+  }
+  adjustMode = true;
+}
+
+function handleScroll(direction) {
+  if (currentScreen === 'usage') {
+    usageFocusIndex = clamp(usageFocusIndex + direction, 0, 1);
+    renderUsageScreen();
+    return;
+  }
+
+  if (currentScreen === 'changelog') {
+    // Scroll the changelog list manually
+    const list = document.getElementById('changelog-list');
+    list.scrollTop += direction * 40;
+    return;
+  }
+
+  if (currentScreen === 'settings') {
+    if (adjustMode) {
+      // adjust the focused row's value in steps of 5
+      if (settingsFocusIndex === 0) {
+        state.session = clamp(state.session - direction * 5, 0, 100);
+      } else if (settingsFocusIndex === 1) {
+        state.weekly = clamp(state.weekly - direction * 5, 0, 100);
+      }
+      renderSettingsScreen();
+    } else {
+      settingsFocusIndex = clamp(settingsFocusIndex + direction, 0, 2);
+      renderSettingsScreen();
+    }
+  }
+}
+
+function handleSelect() {
+  if (currentScreen === 'usage') {
+    switchScreen('settings');
+    return;
+  }
+
+  if (currentScreen === 'changelog') {
+    switchScreen('usage');
+    return;
+  }
+
+  if (currentScreen === 'settings') {
+    if (settingsFocusIndex === 2) {
+      // Back row
+      saveState(state);
+      switchScreen('usage');
+    }
+    // rows 0/1: click just confirms focus; actual adjust is via long-press+scroll
+  }
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+// ---------- Sync ----------
+const AUTO_REFRESH_MS = 90 * 1000; // 1.5 minutes — combined with the extension's 1-min push, keeps worst-case staleness under 3 min
+
+async function syncUsage() {
+  const data = await getUsageData(null);
+  state.session = data.session;
+  state.weekly = data.weekly;
+  state.sessionResetMinutes = data.sessionResetMinutes;
+  state.weeklyResetDays = data.weeklyResetDays;
+  if (data.pushedAt) state.pushedAt = data.pushedAt; // only overwrite on a real value — keep last-known on error/unconfigured
+  await saveState(state);
+  if (currentScreen === 'usage') renderUsageScreen();
+}
+
+// ---------- Init ----------
+// ---------- Changelog ----------
+const CHANGELOG = [
+  { v: '1.3.5', notes: ['scroll hint text brightness matched to copyright (#555 → #999)'] },
+  { v: '1.3.4', notes: ['copyright notice now shown on main screen below the scroll hint, matching Settings screen'] },
+  { v: '1.3.3', notes: ['copyright text in Settings footer brightened (#444 → #999)'] },
+  { v: '1.3.2', notes: ['changelog back button is now a real tappable row (was just hint text)'] },
+  { v: '1.3.1', notes: ['version number now tappable — opens this What\u2019s New screen', 'scroll wheel scrolls the changelog, PTT goes back to usage'] },
+  { v: '1.3.0', notes: ['copyright notice added to source and Settings screen', 'PWA support — installable to home screen, works offline (relay calls always hit the network since live data is the point)'] },
+  { v: '1.2.3', notes: ['"% left" and "resets in..." text below each bar now in amber — was too dim to read on black background'] },
+  { v: '1.2.2', notes: ['R1 poll interval: 5 min → 90 sec', 'Extension push interval: 4 min → 1 min', 'Worst-case staleness now ~2.5 min instead of ~8–10 min'] },
+  { v: '1.2.1', notes: ['"Last updated" repositioned directly below the Session/Weekly boxes', 'Bigger (12px bold) and brighter (#ccc base) — was 7px #666', 'Amber now means fresh (within 15 min), grey means older'] },
+  { v: '1.2.0', notes: ['"Last updated: Today H:MM AM/PM" line added below the bars', 'Shows when the extension actually pushed data to the relay — distinct from when the R1 last polled', 'Amber within 15 min, grey after that'] },
+  { v: '1.1.2', notes: ['Header time and version tag brighter (#ccc / #999 vs #666 / #444)', 'Time now 12-hour AM/PM format instead of 24-hour'] },
+  { v: '1.1.1', notes: ['Fix: PROXY_URL was left empty in previous builds — was silently showing placeholder 45%/32% the whole time despite the relay and extension working correctly'] },
+  { v: '1.1.0', notes: ['Architecture change: relay no longer fetches claude.ai directly — Cloudflare bot protection blocks server-side fetches regardless of headers', 'Chrome extension now reads usage from inside your logged-in browser tab and pushes to the relay', 'Relay is now a simple push/pull store — no session key needed'] },
+  { v: '1.0.0', notes: ['Initial release — 240×282px R1 Creation', 'Session (5h) and Weekly usage bars with color coding', 'Scroll wheel navigation, PTT for settings', 'Auto-sync every 5 min, long-press for immediate sync', 'Manual value entry as fallback in Settings'] }
+];
+
+function renderChangelog() {
+  const list = document.getElementById('changelog-list');
+  list.innerHTML = CHANGELOG.map(entry => `
+    <div style="margin-bottom:12px">
+      <div style="color:#FF6A00;font-size:10px;font-weight:700;margin-bottom:3px">v${entry.v}</div>
+      <ul style="margin:0;padding-left:14px;color:#ccc;font-size:8px;line-height:1.7">
+        ${entry.notes.map(n => `<li>${n}</li>`).join('')}
+      </ul>
+    </div>`).join('');
+  list.scrollTop = 0;
+}
+
+async function init() {
+  document.getElementById('versionTag').textContent = 'v' + APP_VERSION;
+  const saved = await loadState();
+  if (saved) {
+    state = { ...state, ...saved };
+    renderUsageScreen();
+  }
+  // Always attempt a live sync on load (falls back gracefully if unconfigured/offline)
+  await syncUsage();
+  setInterval(syncUsage, AUTO_REFRESH_MS);
+
+  // Register service worker for PWA / offline support
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      // SW registration failure is non-fatal — app works fine without it
+    });
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
