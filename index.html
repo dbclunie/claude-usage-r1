@@ -283,7 +283,8 @@
   .bar-fill.critical { background: var(--critical); }
 
   .metric-sub {
-    font-size: 8px;
+    font-size: 12px;
+    font-weight: 700;
     color: var(--caution);
     display: flex;
     justify-content: space-between;
@@ -460,7 +461,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 
 /* ===========================================================
 
@@ -881,6 +882,7 @@ function renderThemePicker() {
 
 // ---------- Changelog ----------
 const CHANGELOG = [
+  { v: '1.4.1', notes: ['metric-sub text (% left + resets in...) bumped to 12px bold to match Last updated — easier to read from a distance'] },
   { v: '1.4.0', notes: ['theme system added — 9 presets: Dark, Light, Volcanic Desert (Red), Desert Orange, Plains Yellow, Forest Green, Blues Ocean (Blue), Midnight Tundra (Indigo), Twilight Alpine (Violet)', 'all colors refactored to CSS custom properties', 'theme picker in Settings > Theme, scroll to browse, PTT to select, hold to go back', 'selected theme persists across sessions'] },
   { v: '1.3.5', notes: ['scroll hint text brightness matched to copyright (#555 → #999)'] },
   { v: '1.3.4', notes: ['copyright notice now shown on main screen below the scroll hint, matching Settings screen'] },
