@@ -461,7 +461,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.4.2';
+const APP_VERSION = '1.4.3';
 
 /* ===========================================================
 
@@ -479,7 +479,7 @@ const APP_VERSION = '1.4.2';
      https://your-app.onrender.com/usage?key=YOUR_SHARED_SECRET
    =========================================================== */
 
-const PROXY_URL = 'https://claude-usage-proxy-xz3n.onrender.com/usage?key=r1proxy9k2m';
+const PROXY_URL = 'https://claude-usage-relay.dclunie.workers.dev/usage?key=r1proxy9k2m';
 const FETCH_TIMEOUT_MS = 8000;
 
 // ---------- Storage helpers (R1 creationStorage, base64 JSON) ----------
@@ -882,6 +882,7 @@ function renderThemePicker() {
 
 // ---------- Changelog ----------
 const CHANGELOG = [
+  { v: '1.4.3', notes: ['relay migrated from Render to Cloudflare Worker — always-on, no cold starts, persistent KV storage'] },
   { v: '1.4.2', notes: ['R1 mascot icon added before CLAUDE USAGE title in the header'] },
   { v: '1.4.1', notes: ['metric-sub text (% left + resets in...) bumped to 12px bold to match Last updated — easier to read from a distance'] },
   { v: '1.4.0', notes: ['theme system added — 9 presets: Dark, Light, Volcanic Desert (Red), Desert Orange, Plains Yellow, Forest Green, Blues Ocean (Blue), Midnight Tundra (Indigo), Twilight Alpine (Violet)', 'all colors refactored to CSS custom properties', 'theme picker in Settings > Theme, scroll to browse, PTT to select, hold to go back', 'selected theme persists across sessions'] },
