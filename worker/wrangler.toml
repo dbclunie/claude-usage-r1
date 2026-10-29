@@ -1,0 +1,15 @@
+name = "claude-usage-relay"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# KV namespace — run `wrangler kv namespace create USAGE_KV` to get the id,
+# then paste it below (replace the placeholder).
+# Also create a preview namespace:
+# `wrangler kv namespace create USAGE_KV --preview`
+[[kv_namespaces]]
+binding  = "USAGE_KV"
+id       = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_YOUR_PREVIEW_KV_NAMESPACE_ID"
+
+# Secret — set via CLI, never in this file:
+# wrangler secret put PROXY_SHARED_SECRET
