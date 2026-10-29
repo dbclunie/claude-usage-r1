@@ -461,7 +461,7 @@
    VERSION: bump on every change. Keep <title>, #versionTag,
    APP_VERSION below, and CHANGELOG.md all in sync. */
 
-const APP_VERSION = '1.4.3';
+const APP_VERSION = '1.4.4';
 
 /* ===========================================================
 
@@ -547,7 +547,8 @@ async function getUsageData(manualOverride) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    const resp = await fetch(PROXY_URL, { signal: controller.signal });
+    const sep = PROXY_URL.includes('?') ? '&' : '?';
+    const resp = await fetch(PROXY_URL + sep + '_=' + Date.now(), { signal: controller.signal, cache: 'no-store' });
     clearTimeout(timeout);
 
     if (!resp.ok) throw new Error('proxy returned ' + resp.status);
@@ -882,6 +883,7 @@ function renderThemePicker() {
 
 // ---------- Changelog ----------
 const CHANGELOG = [
+  { v: '1.4.4', notes: ['fix: live data stuck on first fetch - service worker was caching relay responses (only bypassed onrender.com, not workers.dev)', 'relay requests now bypass the cache and carry a unique URL'] },
   { v: '1.4.3', notes: ['relay migrated from Render to Cloudflare Worker — always-on, no cold starts, persistent KV storage'] },
   { v: '1.4.2', notes: ['R1 mascot icon added before CLAUDE USAGE title in the header'] },
   { v: '1.4.1', notes: ['metric-sub text (% left + resets in...) bumped to 12px bold to match Last updated — easier to read from a distance'] },
