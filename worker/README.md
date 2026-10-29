@@ -55,3 +55,11 @@ cd ~/claude-usage-r1/worker
 wrangler deploy
 ```
 That's it — KV data and secrets persist across redeploys.
+
+## Free-tier budget (KV)
+Cloudflare KV free tier: 100,000 reads/day, **1,000 writes/day**.
+The extension pushes ~every minute, so v3.0.0 (write on every push) exceeded the
+write cap (~1,440+/day). v3.1.0 writes only when the value changes or every 5 min
+(~288 heartbeat writes/day max + real changes). If a KV op fails, the Worker
+serves the last value from memory best-effort.
+Trade-off: the "Last updated" time can lag by up to 5 min when values are unchanged.
