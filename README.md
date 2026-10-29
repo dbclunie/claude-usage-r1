@@ -1,237 +1,175 @@
 # Claude Usage Monitor — Rabbit R1 Creation
 
-A native Rabbit R1 Creation that shows your Claude.ai **5-hour session** and
-**weekly** usage limits at a glance — a Chrome extension reads the numbers
-from inside your logged-in browser tab and relays them to your R1, so you
-never have to tab over or click the extension icon manually.
+A Rabbit R1 Creation that shows your Claude.ai **5-hour session** and **weekly** usage
+limits at a glance. A Chrome extension reads the numbers from inside your logged-in
+claude.ai tab and sends them to a small Cloudflare Worker; the R1 polls the Worker.
 
-Built to the real R1 constraints: 240×282px portrait screen, scroll-wheel +
-PTT-button navigation, `creationStorage` for on-device persistence. No
-frameworks, no build step for the Creation itself — plain HTML/CSS/JS, same
-pattern as the community R1 creations.
+Built to the real R1 constraints: 240×282px portrait screen, scroll-wheel + PTT-button
+navigation, `creationStorage` for on-device persistence. Plain HTML/CSS/JS, no build step.
+
+## What you see on the R1
+
+- **Session (5h)** and **Weekly** cards: big % used, bar (green < 50%, yellow 50–80%, red 80%+),
+  "% left" and "resets in …".
+- **Last updated** — when the extension last pushed data. Amber when under 15 min old.
+- **Sync status** — green `sync OK <time>`, or red `sync FAIL <time>` with the actual error underneath.
+- **Version tag** (top-right) — tap/click it to open **What's New** (full version history).
+- **Settings** (PTT click): manual Session/Weekly values (fallback), **Theme**, Back.
+- **Themes (9):** Dark, Light, Volcanic Desert, Desert Orange, Plains Yellow, Forest Green,
+  Blues Ocean, Midnight Tundra, Twilight Alpine. Choice persists across sessions.
+
+| Control | Main screen | Settings / lists |
+|---|---|---|
+| Scroll wheel | move focus | move / scroll |
+| PTT click | open Settings | select / back |
+| Long-press | force an immediate sync | on Theme picker: go back; elsewhere: hold + scroll to adjust a value |
 
 ## How it works
 
 ```
-┌──────────────┐   reads via   ┌───────────┐
-│ Chrome ext.  │──────────────►│ claude.ai │   (real browser session,
-│ (content.js) │◄──────────────│  usage    │    passes Cloudflare fine)
-└──────┬───────┘   usage JSON  └───────────┘
-       │ POST /push
-       ▼
-┌──────────────┐
-│  Your relay  │   (small Express server, no build step)
-│ (server.js)  │
-└──────┬───────┘
-       │ GET /usage
-       ▼
-┌──────────────┐
-│  R1 device   │   (polls every ~5 min, shows session + weekly %)
-│ (index.html) │
-└──────────────┘
+┌────────────────┐  reads usage   ┌───────────┐
+│ Chrome ext.    │───────────────►│ claude.ai │  (your real, logged-in tab —
+│ (content.js)   │◄───────────────│  /usage   │   passes Cloudflare's checks)
+└───────┬────────┘                └───────────┘
+        │ POST /push  (~every 1 min)
+        ▼
+┌────────────────┐
+│ Cloudflare     │  KV store, always-on, free tier
+│ Worker         │
+└───────┬────────┘
+        │ GET /usage  (R1 polls every 90 s)
+        ▼
+┌────────────────┐
+│ R1 Creation    │
+│ (index.html)   │
+└────────────────┘
 ```
 
-### Why this shape, not a simpler server-side fetch
+**Why not fetch claude.ai from a server?** claude.ai's usage endpoint sits behind Cloudflare
+bot protection. A server-side request (tested from Render) gets a JavaScript challenge page
+(`cf-mitigated: challenge`) instead of data, regardless of headers or a valid session key.
+Reading from inside a real browser tab avoids that.
 
-The first version of this had the relay itself fetch claude.ai's usage
-endpoint directly, server-side. **That doesn't work**: claude.ai's internal
-usage API sits behind Cloudflare bot protection that challenges requests
-not coming from an already-authenticated real browser session. A
-datacenter server making a cold outbound request — no matter how
-browser-like its headers look, and regardless of whether the session key
-itself is valid — gets served a Cloudflare JavaScript challenge page
-instead of real data. This isn't a bug to fix with better headers; it's
-what Cloudflare's protection is specifically designed to do.
+### Timing
 
-The fix is to read the data from **inside a real, already-trusted browser
-session** instead: a small Chrome extension's content script runs on the
-`claude.ai` page itself, inherits that page's trusted session, and its
-`fetch()` calls go through exactly the way the page's own Settings → Usage
-panel's calls do — because that's literally the same code path. The
-extension then pushes the result to your relay, which just holds the last
-value for the R1 to read. The relay never talks to claude.ai and never
-holds a session key.
+| Step | Interval |
+|---|---|
+| Extension → Worker | every 1 min, plus on each claude.ai page load |
+| Worker → KV write | only when a value changes, or every 5 min (heartbeat) |
+| R1 ← Worker | every 90 s; long-press forces it |
 
-## ⚠️ Important caveats — read before relying on this
+Worst case from a real usage change to the R1 is about 2.5 min (up to ~3.5 min if KV propagation
+is slow). "Last updated" can lag up to 5 min when your usage hasn't changed — the numbers aren't stale.
 
-- **Unofficial endpoints.** `claude.ai/api/organizations/*/usage` is an
-  internal endpoint of the claude.ai web app, not part of the public,
-  documented Claude API. Confirmed live and working as of 2026-08-24 via
-  direct inspection, but it can change shape or break without notice.
-- **Requires a browser open somewhere.** The extension only pushes fresh
-  data when it can reach an open `claude.ai` tab (any tab, doesn't need to
-  be focused/active) — either because you have one open, or because its
-  periodic alarm can message an existing one. If no `claude.ai` tab is open
-  anywhere, the R1 will show increasingly stale data (visible via the
-  relay's `ageSeconds` field) until you open one again.
-- **This is a personal convenience tool**, not something to run at scale,
-  publish to the Chrome Web Store, or distribute with your relay URL/secret
-  baked in for other people to use.
+## ⚠️ Caveats — read before relying on this
+
+- **Needs Chrome.** The extension pushes only while Chrome is running with a claude.ai tab open
+  (any tab, focused or not). Mac asleep, Chrome closed, or the tab discarded = no new pushes; the
+  R1 keeps showing the last value. Pin the tab. Dropping this dependency was investigated but is
+  not built (see Troubleshooting).
+- **Unofficial endpoint.** `claude.ai/api/organizations/{org}/usage` is internal to the web app,
+  not a documented API. It can change or break without notice.
+- **Cloudflare KV free tier: 1,000 writes/day** (100K reads/day). The Worker dedupes writes to
+  stay under it (v3.1.0). Writing on every push exceeded the cap and triggered Cloudflare's
+  "90% of daily limit" email.
+- **Shared secret is in the public repo.** `PROXY_URL` in `index.html` contains it. Reads leak
+  nothing sensitive, but anyone with it could post fake numbers to your Worker. Fine for a
+  personal tool; rotate it (`wrangler secret put PROXY_SHARED_SECRET`) or make the repo private if
+  it bothers you.
+- **Personal tool.** Don't publish the extension or distribute it with your URL/secret baked in.
 
 ## Repo layout
 
 ```
-index.html          — the R1 Creation itself (self-contained, no build step)
-proxy/
-  server.js          — small Express relay: POST /push, GET /usage
-  package.json
-  render.yaml         — Render Blueprint (deploy config)
-extension/
-  manifest.json        — Chrome extension (Manifest V3)
-  content.js            — runs on claude.ai, reads usage, reports to background
-  background.js         — periodic alarm + pushes to relay
-  popup.html/popup.js    — settings UI (relay URL, shared secret) + status
-  icon128.png
-CHANGELOG.md         — version history for all three components
-README.md            — this file
+index.html, index-v<ver>.html   R1 Creation (the versioned copy is what the R1 installs)
+manifest.json, sw.js, icons/    PWA files (phones/browsers; the R1 does not use the service worker)
+worker/                          Cloudflare Worker relay (index.js, wrangler.toml, README.md)
+extension/                       Chrome extension (Manifest V3)
+CHANGELOG.md                     History for Creation, Worker, Extension (+ retired Render relay)
 ```
-
-## Versioning
-
-Each component versions independently — see [`CHANGELOG.md`](./CHANGELOG.md):
-- **Creation**: `index.html`'s `<title>`, on-screen version tag, and
-  `APP_VERSION` constant.
-- **Relay**: `proxy/package.json`, echoed by `/health` and `/usage` as
-  `proxyVersion`.
-- **Extension**: `extension/manifest.json`.
 
 ## Setup
 
-### 1. Deploy the relay
+### 1. Deploy the Worker (~5 min, free)
 
-Any Node host works (Render, Railway, Fly.io, a Raspberry Pi on your LAN).
-With Render's free tier, using the included `render.yaml` Blueprint:
+See [`worker/README.md`](./worker/README.md). Summary:
 
-1. Push this repo to GitHub.
-2. On Render: **New → Blueprint** → select this repo. It reads
-   `render.yaml` and configures the service automatically (root directory
-   `proxy/`, build `npm install`, start `npm start`).
-3. Set the one required environment variable:
-   - `PROXY_SHARED_SECRET` — any random string you make up. This is the
-     only secret in the whole system now — no session key touches the
-     server at all.
-4. Deploy. Test it:
-   ```bash
-   curl "https://your-app.onrender.com/health"
-   # → {"ok":true,"version":"2.0.0"}
+```bash
+brew install node && npm install -g wrangler && wrangler login
+cd worker
+wrangler kv namespace create USAGE_KV            # paste the id into wrangler.toml
+wrangler kv namespace create USAGE_KV --preview  # paste the preview_id
+wrangler secret put PROXY_SHARED_SECRET          # any random string
+wrangler deploy                                  # prints https://claude-usage-relay.<you>.workers.dev
+```
 
-   curl "https://your-app.onrender.com/usage?key=YOUR_SHARED_SECRET"
-   # → {"error":"no data pushed yet", ...}  (expected until the extension pushes once)
-   ```
-
-**Free-tier note:** Render's free web services spin down after 15 minutes
-of no inbound traffic and take up to a minute to wake on the next request.
-The extension pushes every ~4 minutes and the R1 polls every ~5, so in
-practice the service should stay warm during normal use; a longer gap (R1
-off overnight, browser closed) just means the next request is a bit slower
-to wake it, not broken.
+Check `https://<worker-url>/health` → `{"ok":true,"version":"3.1.0",...}`.
 
 ### 2. Install the Chrome extension
 
-1. Open `chrome://extensions` in Chrome.
-2. Enable **Developer mode** (top right).
-3. Click **Load unpacked** → select the `extension/` folder from this repo.
-4. Click the extension's icon in your toolbar → enter:
-   - **Relay server URL**: `https://your-app.onrender.com`
-   - **Shared secret**: the same `PROXY_SHARED_SECRET` you set on Render
-   - Click **Save**.
-5. Open (or refresh) a `claude.ai` tab. Within a few seconds the popup
-   should show "Last push OK" with your real session/weekly percentages.
+1. Clone the repo to a **permanent** path and never move it:
+   `git clone https://github.com/<you>/<repo>.git ~/claude-usage-r1`
+2. `chrome://extensions` → Developer mode → **Load unpacked** → select the `extension` folder itself.
+3. Click the extension icon → enter **Relay URL** (`https://<worker-url>`, no path) and the **shared secret** → Save.
+4. Open (and pin) a claude.ai tab. The popup should show "Last push OK" within a minute.
 
-The extension pushes automatically from then on — every ~4 minutes via its
-background alarm, plus immediately whenever a `claude.ai` tab loads or its
-usage panel is refreshed. You don't need to click anything day-to-day.
+Settings are stored per extension identity: moving the folder or removing/re-adding the extension
+**clears them**, so re-enter the URL and secret. Update with `git pull`, then click the reload icon on the extension card.
 
-### 3. Point the R1 Creation at your relay
+### 3. Point the Creation at your Worker
 
-Edit `index.html`, find:
+In `index.html`:
 
 ```js
-const PROXY_URL = ''; // <-- SET THIS after deploying the relay
+const PROXY_URL = 'https://<worker-url>/usage?key=<SHARED_SECRET>';
 ```
 
-Set it to your relay's `/usage` endpoint with the shared secret:
+### 4. Host and install on the R1
 
-```js
-const PROXY_URL = 'https://your-app.onrender.com/usage?key=YOUR_SHARED_SECRET';
-```
-
-Commit this to your own repo. If you're keeping the repo public, be aware
-this bakes your relay URL and secret into a public file's git history —
-acceptable for a low-stakes personal shared-secret, but rotate it if that
-ever bothers you, or keep the repo private.
-
-### 4. Install on your R1
-
-1. Host `index.html` somewhere static — GitHub Pages works:
-   ```bash
-   # In the repo's GitHub Settings → Pages, set source to the main branch, root.
-   ```
-   Your creation will be live at `https://<you>.github.io/<repo>/`.
-2. Generate an install QR code. **Important**: the R1's QR installer
-   expects a JSON payload, not a bare URL:
+1. Host the repo on GitHub Pages (Settings → Pages → `main` branch, root).
+2. Copy `index.html` to `index-v<version>.html` and commit both (see "Updating" below).
+3. Generate an install QR from this **JSON payload** — a bare URL is rejected by the R1 as "invalid":
    ```json
-   {"title":"Claude Usage","url":"https://<you>.github.io/<repo>/","description":"...","iconUrl":"","themeColor":"#FF6A00"}
+   {"title":"Claude Usage","url":"https://<you>.github.io/<repo>/index-v<version>.html","description":"Session and weekly Claude usage monitor","iconUrl":"https://<you>.github.io/<repo>/icons/icon-192.png","themeColor":"#FF6A00"}
    ```
-   Encode that JSON string (not just the URL) into a QR code — a plain
-   URL-only QR will be rejected as "invalid" by the R1.
-3. On your R1: open the **camera** → scan → **Install**.
+4. On the R1: camera → scan → Install.
 
-### Updating the Creation after the first install
+### Updating the Creation
 
-GitHub Pages runs on Fastly, which — like many CDNs — can cache a page
-by filename and **ignore query strings entirely**. This means the
-`?v=1.2.3` trick commonly suggested for cache-busting does **not**
-reliably work here: the R1 (and/or Fastly) may keep serving the old
-cached `index.html` even when the QR encodes a "new" URL with a
-different query param.
+The R1 caches the page. Query-string cache-busting (`?v=…`) does **not** work (GitHub Pages' CDN
+can ignore query strings). The reliable way:
 
-The reliable fix is a genuinely different **filename**, which no cache
-layer can collapse with the old one. This repo keeps `index.html` as
-the always-current canonical copy, and additionally publishes a
-version-named duplicate on every release that changes the Creation
-(e.g. `index-v1.2.1.html`) specifically for re-installing on the R1:
-
-1. After editing `index.html` and bumping `APP_VERSION`, copy it to
-   `index-v<version>.html` and commit both.
-2. Generate the install QR pointing at the **versioned filename**, not
-   `index.html`:
-   ```json
-   {"title":"Claude Usage","url":"https://<you>.github.io/<repo>/index-v1.2.1.html", ...}
-   ```
-3. **Uninstall the old card on the R1 first**, then scan the new QR —
-   this repo's testing found that skipping the uninstall step can leave
-   a stale card in place even with a genuinely new URL.
-
-Meta tags (`Cache-Control: no-cache` etc.) are also set in `<head>` as
-defense in depth, but browsers/WebViews are free to ignore them in
-favor of server-sent headers — the versioned-filename approach is the
-one that reliably works.
-
-## Using the R1 Creation
-
-- **Scroll wheel** — move focus between Session and Weekly cards
-- **Click (PTT button)** — open Settings
-- **Long-press on main screen** — force an immediate pull from the relay
-- In Settings: **scroll** to pick a row, **hold PTT + scroll** to adjust a
-  value manually (useful fallback if the relay has no data yet), **click
-  Back** to save and return
-
-Color coding: green under 50%, yellow 50–80%, red 80%+.
+1. Edit `index.html`, bump `APP_VERSION`, `<title>`, and the in-app `CHANGELOG` list.
+2. Copy it to `index-v<new-version>.html`; delete the previous versioned file.
+3. Make a QR pointing at the new filename.
+4. **Uninstall the old card on the R1 first**, then scan.
 
 ## Troubleshooting
 
-- **R1 shows placeholder/stale numbers** → check the extension popup for
-  "Last push" status. If it says no push yet, open a `claude.ai` tab. If
-  push is failing, confirm the relay URL and shared secret match exactly
-  between the extension popup and Render's `PROXY_SHARED_SECRET`.
-- **`{"error":"no data pushed yet"}` from `/usage`** → expected until the
-  extension's first successful push; open claude.ai with the extension
-  installed and active.
-- **Relay seems slow to respond** → likely Render's free-tier cold start
-  (up to ~60s after 15 min idle). Not an error, just a wake-up delay.
+Read the R1's **sync status line** first:
+
+| What you see | Meaning / fix |
+|---|---|
+| green `sync OK`, but "Last updated" is old | Extension isn't pushing: Chrome closed, Mac asleep, or no claude.ai tab. Open one. |
+| red `Failed to fetch` | R1 can't reach the Worker (network, wrong URL). |
+| red `timeout (8s)` | Request hanging. |
+| red `HTTP 401` | Secret mismatch between `PROXY_URL` and the Worker. |
+| red `HTTP 404` | Worker has no data yet — open claude.ai with the extension active. |
+| no status line / old version tag | The R1 is running an older install. Uninstall and rescan the latest QR. |
+
+Other known issues:
+- **Extension popup is empty after moving the folder** — expected; re-enter URL + secret.
+- **Cloudflare "KV operations nearing the daily cap" email** — expected only on Worker < 3.1.0. Confirm `/health` says 3.1.0+.
+- **R1 stuck on old data after a relay change** — fixed in Creation 1.4.4/1.4.5 (a service worker was caching relay responses; the R1 no longer uses one).
+- **Dropping Chrome:** not possible without a session key stored somewhere that fetches claude.ai itself. A Worker would likely hit the same Cloudflare challenge; a script on an always-on Mac might work but is untested.
+
+## Versioning
+
+Components version independently — see [`CHANGELOG.md`](./CHANGELOG.md). Creation: `APP_VERSION` in
+`index.html`. Worker: `VERSION` in `worker/index.js`. Extension: `extension/manifest.json`.
 
 ## License
 
-MIT — do whatever you want with this, no warranty. See the caveats above
-before depending on it for anything important.
+Copyright (c) 2026 David Clunie. All rights reserved. This source code is proprietary and
+confidential; it may not be reproduced, distributed, or used to create derivative works without
+written permission from the copyright holder.
