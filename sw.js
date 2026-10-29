@@ -1,7 +1,7 @@
 // Claude Usage Monitor — service worker
 // Enables offline use and "Add to Home Screen" / PWA install.
 // Bump CACHE_NAME whenever index.html changes so clients pick up the new version.
-const CACHE_NAME = 'claude-usage-v1.2.3';
+const CACHE_NAME = 'claude-usage-v1.4.4';
 
 const APP_SHELL = [
   './',
@@ -29,25 +29,21 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  const url = event.request.url;
+  const req = event.request;
+  const url = new URL(req.url);
 
-  // Never cache relay calls — the whole point of the app is live usage data,
-  // caching it would mean showing stale numbers, which is worse than failing offline.
-  const isRelayCall = url.includes('onrender.com');
-  if (isRelayCall) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
+  // Only the app shell (same-origin GETs) is cached. Everything else — notably the
+  // relay API (workers.dev, onrender.com, any host) — goes straight to the network
+  // and is never cached: live data must never be served stale.
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // App shell: cache-first so the app opens instantly and works offline.
-  // Falls back to network for anything not already cached.
   event.respondWith(
-    caches.match(event.request).then(cached => {
+    caches.match(req).then(cached => {
       if (cached) return cached;
-      return fetch(event.request).then(response => {
+      return fetch(req).then(response => {
         if (response && response.status === 200) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         }
         return response;
       });
