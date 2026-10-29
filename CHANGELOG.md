@@ -189,6 +189,19 @@ New shape:
   variants and returns `null` windows (rather than guessing) when it
   can't find them
 
+## Worker (worker/)
+
+### v3.1.0
+- Fix: KV writes were happening on every push (~1,440+/day) vs. the free-tier
+  cap of 1,000 writes/day (Cloudflare emailed a 90% warning). Now writes only
+  when usedPercent/resetsAt (to the minute) change, or every 5 min as a
+  heartbeat. Added in-memory fallback if a KV op fails.
+- Note: `resetsAt` sub-second digits differ per fetch, so change detection
+  compares to the minute only.
+
+### v3.0.0
+- Initial Cloudflare Worker + KV relay, replacing the Render relay.
+
 ## Extension (extension/)
 
 ### v1.1.0
