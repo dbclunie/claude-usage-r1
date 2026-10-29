@@ -3,3 +3,9 @@ node_modules/
 .env.local
 *.log
 .DS_Store
+
+# local preview/diagnostic screenshots
+screenshot-*.png
+theme-*.png
+sync-*.png
+diag-*.png
