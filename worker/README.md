@@ -39,7 +39,7 @@ You'll get a URL like `https://claude-usage-relay.<your-subdomain>.workers.dev`
 ### 5. Test
 ```bash
 curl https://claude-usage-relay.<your-subdomain>.workers.dev/health
-# → {"ok":true,"version":"3.0.0","store":"cloudflare-kv"}
+# → {"ok":true,"version":"3.1.0","store":"cloudflare-kv"}
 
 curl "https://claude-usage-relay.<your-subdomain>.workers.dev/usage?key=r1proxy9k2m"
 # → {"error":"no data pushed yet",...}  (expected until extension pushes)
@@ -47,7 +47,7 @@ curl "https://claude-usage-relay.<your-subdomain>.workers.dev/usage?key=r1proxy9
 
 ### 6. Update the extension + R1
 - In the extension popup: change Relay URL to your new `workers.dev` URL
-- I'll update `PROXY_URL` in `index.html` and push a new QR for the R1
+- In `index.html` set `PROXY_URL = 'https://<worker-url>/usage?key=<SECRET>'`, then reinstall the Creation on the R1 (see the main README)
 
 ## Future deploys
 ```bash
