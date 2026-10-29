@@ -1,18 +1,60 @@
 # Changelog
 
-Version numbers apply independently to the three components in this repo:
-- **Creation** = `index.html` (the R1 device app) — version shown in its
-  `<title>`, the on-screen `versionTag`/`versionFooter`, and `APP_VERSION`
-  in the script.
-- **Relay** (formerly "proxy") = `proxy/server.js` — version tracked in
-  `proxy/package.json` and echoed by the `/health` endpoint and every
-  `/usage` response (`proxyVersion` field).
-- **Extension** = `extension/` (Chrome extension) — version tracked in
-  `extension/manifest.json`.
+Version numbers apply independently to the components in this repo:
+- **Creation** = `index.html` and `index-v<version>.html` (the R1 device app) — version shown in `<title>`, the on-screen tag, `APP_VERSION`, and the in-app What's New list.
+- **Worker** = `worker/` (Cloudflare Worker relay) — `VERSION` in `worker/index.js`, echoed by `/health` and `/usage`.
+- **Extension** = `extension/` (Chrome extension) — `extension/manifest.json`.
+- **Relay (proxy/)** = the retired Render/Express relay. Removed from the repo (still in git history); kept below for the record.
 
 Bump the relevant version on every change to that component.
 
 ## Creation
+
+### v1.4.6
+- sync status line now 12px bold, same size as Last updated; error detail on its own smaller line
+
+### v1.4.5
+- on-screen sync status line: sync OK <time> or the actual error
+- service worker no longer used on the R1 (unregisters and clears caches) - PWA caching stays for phones/browsers
+- Service worker is skipped on the R1 (detected via `window.creationStorage` / user agent); any existing registration and its caches are cleared on load. Phones/browsers keep the PWA service worker.
+
+### v1.4.4
+- fix: live data stuck on first fetch - service worker was caching relay responses (only bypassed onrender.com, not workers.dev)
+- relay requests now bypass the cache and carry a unique URL
+- Root cause: `sw.js` bypassed its cache only for `onrender.com`. After the relay moved to `workers.dev`, `/usage` responses were served cache-first, so the R1 kept showing the first fetched data. `sw.js` now handles same-origin GETs only; everything else goes straight to the network.
+
+### v1.4.3
+- relay migrated from Render to Cloudflare Worker — always-on, no cold starts, persistent KV storage
+
+### v1.4.2
+- R1 mascot icon added before CLAUDE USAGE title in the header
+- Mascot is embedded as a base64 PNG (no extra request). The card icon on the R1 home screen comes from `iconUrl` in the install QR payload.
+
+### v1.4.1
+- metric-sub text (% left + resets in...) bumped to 12px bold to match Last updated — easier to read from a distance
+
+### v1.4.0
+- theme system added — 9 presets: Dark, Light, Volcanic Desert (Red), Desert Orange, Plains Yellow, Forest Green, Blues Ocean (Blue), Midnight Tundra (Indigo), Twilight Alpine (Violet)
+- all colors refactored to CSS custom properties
+- theme picker in Settings > Theme, scroll to browse, PTT to select, hold to go back
+- selected theme persists across sessions
+- Themes: Dark, Light, Volcanic Desert (red), Desert Orange, Plains Yellow, Forest Green, Blues Ocean (blue), Midnight Tundra (indigo), Twilight Alpine (violet).
+
+### v1.3.5
+- scroll hint text brightness matched to copyright (#555 → #999)
+
+### v1.3.4
+- copyright notice now shown on main screen below the scroll hint, matching Settings screen
+
+### v1.3.3
+- copyright text in Settings footer brightened (#444 → #999)
+
+### v1.3.2
+- changelog back button is now a real tappable row (was just hint text)
+
+### v1.3.1
+- version number now tappable — opens this What’s New screen
+- scroll wheel scrolls the changelog, PTT goes back to usage
 
 ### v1.3.0 (published as `index-v1.3.0.html`)
 - **Copyright notice** added: HTML comment block at top of source
@@ -125,6 +167,8 @@ Bump the relevant version on every change to that component.
 - Color-coded usage bars: green <50%, yellow 50–80%, red 80%+
 
 ## Relay (proxy/) — formerly "Proxy"
+
+> **Retired.** Replaced by the Cloudflare Worker when the Creation moved to it in v1.4.3. The `proxy/` folder and `render.yaml` were removed from the repo.
 
 ### v2.0.0 — architecture change: push, not pull
 **Breaking change.** The relay no longer fetches claude.ai itself.
