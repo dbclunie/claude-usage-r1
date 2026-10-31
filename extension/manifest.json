@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Claude Usage → R1 Relay",
-  "version": "1.1.0",
-  "description": "Reads your Claude.ai session/weekly usage from inside your logged-in browser tab and pushes it to your personal relay server, so your Rabbit R1 Creation can show it without you tabbing over to claude.ai.",
+  "version": "1.2.0",
+  "description": "Reads your Claude.ai session/weekly usage in the background (no claude.ai tab needed) using your logged-in browser session, and pushes it to your personal relay so your Rabbit R1 Creation can show it.",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://claude.ai/*"
