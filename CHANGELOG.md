@@ -248,6 +248,21 @@ New shape:
 
 ## Extension (extension/)
 
+### v1.2.0
+- **No claude.ai tab required.** The background service worker now fetches usage
+  directly from claude.ai every minute using the browser's logged-in session
+  (`/api/organizations` -> `/api/organizations/{id}/usage`), then pushes to the Worker.
+  Org id is cached in `chrome.storage.local`; a stale id (403/404) is re-fetched once.
+- **Fallback:** if the background request fails (Cloudflare challenge, logged out, API shape
+  change) it asks any open claude.ai tab (`content.js`) as before. Nothing is done to evade a
+  challenge.
+- Popup now shows which path was used ("via background fetch" / "via open claude.ai tab"),
+  why the background fetch failed, and a warning if the Worker could not save the value
+  (Worker answers ok even when its KV write fails, e.g. daily cap).
+- Runs on browser start and on extension reload, not only on the alarm.
+- Still requires Chrome running and the Mac awake (nothing runs during sleep).
+- Background requests are untested against Cloudflare at release time; verify via the popup.
+
 ### v1.1.0
 - `ALARM_PERIOD_MINUTES`: 4 → 1. Chrome's practical floor for a
   repeating alarm is 0.5-1 minute depending on packed/unpacked state;
