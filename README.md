@@ -1,8 +1,9 @@
 # Claude Usage Monitor — Rabbit R1 Creation
 
 A Rabbit R1 Creation that shows your Claude.ai **5-hour session** and **weekly** usage
-limits at a glance. A Chrome extension reads the numbers from inside your logged-in
-claude.ai tab and sends them to a small Cloudflare Worker; the R1 polls the Worker.
+limits at a glance. A Chrome extension fetches the numbers from claude.ai in the background using your
+logged-in browser session (no claude.ai tab needed) and sends them to a small Cloudflare Worker;
+the R1 polls the Worker.
 
 Built to the real R1 constraints: 240×282px portrait screen, scroll-wheel + PTT-button
 navigation, `creationStorage` for on-device persistence. Plain HTML/CSS/JS, no build step.
@@ -28,7 +29,7 @@ navigation, `creationStorage` for on-device persistence. Plain HTML/CSS/JS, no b
 
 ```
 ┌────────────────┐  reads usage   ┌───────────┐
-│ Chrome ext.    │───────────────►│ claude.ai │  (your real, logged-in tab —
+│ Chrome ext.    │───────────────►│ claude.ai │  (your logged-in browser —
 │ (content.js)   │◄───────────────│  /usage   │   passes Cloudflare's checks)
 └───────┬────────┘                └───────────┘
         │ POST /push  (~every 1 min)
@@ -48,7 +49,9 @@ navigation, `creationStorage` for on-device persistence. Plain HTML/CSS/JS, no b
 **Why not fetch claude.ai from a server?** claude.ai's usage endpoint sits behind Cloudflare
 bot protection. A server-side request (tested from Render) gets a JavaScript challenge page
 (`cf-mitigated: challenge`) instead of data, regardless of headers or a valid session key.
-Reading from inside a real browser tab avoids that.
+Reading from inside your real, logged-in browser avoids that. v1.2.0 does this from the
+extension's background worker; whether Cloudflare accepts that request is verified in the popup, and the
+extension falls back to an open claude.ai tab if it doesn't.
 
 ### Timing
 
@@ -63,10 +66,10 @@ is slow). "Last updated" can lag up to 5 min when your usage hasn't changed — 
 
 ## ⚠️ Caveats — read before relying on this
 
-- **Needs Chrome.** The extension pushes only while Chrome is running with a claude.ai tab open
-  (any tab, focused or not). Mac asleep, Chrome closed, or the tab discarded = no new pushes; the
-  R1 keeps showing the last value. Pin the tab. Dropping this dependency was investigated but is
-  not built (see Troubleshooting).
+- **Needs Chrome running and the Mac awake.** No claude.ai tab is required (v1.2.0), but nothing
+  runs while the Mac sleeps or Chrome is closed; the R1 keeps showing the last value. Keep the Mac
+  awake on power if you want continuous updates (e.g. `caffeinate -s`). If claude.ai blocks the
+  background request, the extension falls back to needing an open claude.ai tab.
 - **Unofficial endpoint.** `claude.ai/api/organizations/{org}/usage` is internal to the web app,
   not a documented API. It can change or break without notice.
 - **Cloudflare KV free tier: 1,000 writes/day** (100K reads/day). The Worker dedupes writes to
@@ -111,7 +114,9 @@ Check `https://<worker-url>/health` → `{"ok":true,"version":"3.1.0",...}`.
    `git clone https://github.com/<you>/<repo>.git ~/claude-usage-r1`
 2. `chrome://extensions` → Developer mode → **Load unpacked** → select the `extension` folder itself.
 3. Click the extension icon → enter **Relay URL** (`https://<worker-url>`, no path) and the **shared secret** → Save.
-4. Open (and pin) a claude.ai tab. The popup should show "Last push OK" within a minute.
+4. Make sure you're logged in to claude.ai in that Chrome. Within a minute the popup should show
+   "Last push OK ... (via background fetch)". If it says "via open claude.ai tab", the background
+   fetch was blocked (reason shown) and you need to keep a claude.ai tab open.
 
 Settings are stored per extension identity: moving the folder or removing/re-adding the extension
 **clears them**, so re-enter the URL and secret. Update with `git pull`, then click the reload icon on the extension card.
@@ -150,7 +155,9 @@ Read the R1's **sync status line** first:
 
 | What you see | Meaning / fix |
 |---|---|
-| green `sync OK`, but "Last updated" is old | Extension isn't pushing: Chrome closed, Mac asleep, or no claude.ai tab. Open one. |
+| green `sync OK`, but "Last updated" is old | Extension isn't pushing: Chrome closed or Mac asleep (nothing runs during sleep). Check the extension popup. |
+| popup: "Background fetch failed (Cloudflare challenge ...)" | Background request blocked; it falls back to an open claude.ai tab, so keep one open. |
+| popup: "Worker could not save it" | Worker's KV write failed (e.g. daily cap). It resets at 00:00 UTC. |
 | red `Failed to fetch` | R1 can't reach the Worker (network, wrong URL). |
 | red `timeout (8s)` | Request hanging. |
 | red `HTTP 401` | Secret mismatch between `PROXY_URL` and the Worker. |
@@ -161,7 +168,7 @@ Other known issues:
 - **Extension popup is empty after moving the folder** — expected; re-enter URL + secret.
 - **Cloudflare "KV operations nearing the daily cap" email** — expected only on Worker < 3.1.0. Confirm `/health` says 3.1.0+.
 - **R1 stuck on old data after a relay change** — fixed in Creation 1.4.4/1.4.5 (a service worker was caching relay responses; the R1 no longer uses one).
-- **Dropping Chrome:** not possible without a session key stored somewhere that fetches claude.ai itself. A Worker would likely hit the same Cloudflare challenge; a script on an always-on Mac might work but is untested.
+- **Dropping Chrome entirely:** not possible without a stored session key/credential that fetches claude.ai itself. A Worker would likely hit the same Cloudflare challenge. Anthropic's terms bar using plan OAuth tokens in other tools, so the OAuth usage route is not used.
 
 ## Versioning
 
