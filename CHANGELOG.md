@@ -261,7 +261,7 @@ New shape:
   (Worker answers ok even when its KV write fails, e.g. daily cap).
 - Runs on browser start and on extension reload, not only on the alarm.
 - Still requires Chrome running and the Mac awake (nothing runs during sleep).
-- Background requests are untested against Cloudflare at release time; verify via the popup.
+- Verified working on the author's Mac/Chrome (2026-10-30): the popup reported "via background fetch", so Cloudflare accepted the background request and the browser sent the session cookie.
 
 ### v1.1.0
 - `ALARM_PERIOD_MINUTES`: 4 → 1. Chrome's practical floor for a
