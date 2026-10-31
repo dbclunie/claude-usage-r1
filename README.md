@@ -50,8 +50,8 @@ navigation, `creationStorage` for on-device persistence. Plain HTML/CSS/JS, no b
 bot protection. A server-side request (tested from Render) gets a JavaScript challenge page
 (`cf-mitigated: challenge`) instead of data, regardless of headers or a valid session key.
 Reading from inside your real, logged-in browser avoids that. v1.2.0 does this from the
-extension's background worker; whether Cloudflare accepts that request is verified in the popup, and the
-extension falls back to an open claude.ai tab if it doesn't.
+extension's background worker (verified working 2026-10-30). The popup shows which path was used, and the
+extension falls back to an open claude.ai tab if the background request is ever blocked.
 
 ### Timing
 
